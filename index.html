@@ -662,13 +662,15 @@
             grid.innerHTML = products.map(product => `
                 <div class="product-card p-6 flex flex-col group">
                     <div class="aspect-square bg-tiedy-blue/10 mb-6 flex items-center justify-center relative overflow-hidden rounded-lg">
-                        <img src="assets/sapu.jpg" alt="${product.name}" class="w-4/5 h-auto object-contain transition-transform duration-700 group-hover:scale-110">
+                        <img src="${product.images ? product.images[0] : 'assets/sapu.jpg'}" alt="${product.name}" class="w-4/5 h-auto object-contain transition-all duration-700 group-hover:opacity-0 group-hover:scale-110">
+                        ${product.images && product.images[1] ? `
+                        <img src="${product.images[1]}" alt="${product.name} detail" class="absolute w-4/5 h-auto object-contain opacity-0 transition-all duration-700 group-hover:opacity-100 group-hover:scale-105">
+                        ` : ''}
                         <div class="absolute bottom-3 left-3 flex gap-1">
-                            <span class="w-2 h-2 rounded-full bg-tiedy-navy/20 active-state"></span>
-                            <span class="w-2 h-2 rounded-full bg-tiedy-navy/10"></span>
-                            <span class="w-2 h-2 rounded-full bg-tiedy-navy/10"></span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-tiedy-navy/40"></span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-tiedy-navy/10 group-hover:bg-tiedy-navy/40 transition-colors"></span>
                         </div>
-                        <div class="absolute top-3 right-3 text-[9px] font-bold tracking-widest text-tiedy-navy/20 bg-white/80 px-2 py-1 rounded">MULTI VIEW</div>
+                        <div class="absolute top-3 right-3 text-[9px] font-bold tracking-widest text-tiedy-navy/20 bg-white/80 px-2 py-1 rounded">2 VIEWS</div>
                     </div>
                     <div class="flex-1">
                         <div class="flex items-center justify-between mb-2">
