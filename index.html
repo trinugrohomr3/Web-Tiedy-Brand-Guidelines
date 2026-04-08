@@ -675,7 +675,8 @@
                             <span class="text-[10px] font-mono font-bold text-tiedy-navy/40">${product.sku}</span>
                             <span class="text-[9px] bg-tiedy-blue px-2 py-0.5 rounded-full font-bold text-tiedy-navy/60 uppercase tracking-tighter">${product.category}</span>
                         </div>
-                        <h3 class="text-sm font-bold text-tiedy-navy group-hover:text-tiedy-navy/80 transition-colors">${product.name}</h3>
+                        <h3 class="text-sm font-bold text-tiedy-navy group-hover:text-tiedy-navy/80 transition-colors uppercase">${product.name}</h3>
+                        <p class="text-[10px] text-tiedy-navy/60 mt-2 leading-relaxed line-clamp-2">${product.description}</p>
                     </div>
                 </div>
             `).join('');
@@ -713,7 +714,8 @@
             const query = document.getElementById('product-search').value.toLowerCase();
             const filtered = allProducts.filter(p => 
                 p.sku.toLowerCase().includes(query) || 
-                p.name.toLowerCase().includes(query)
+                p.name.toLowerCase().includes(query) ||
+                p.description.toLowerCase().includes(query)
             );
             renderProducts(filtered);
 
