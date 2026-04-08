@@ -635,6 +635,10 @@
     </main>
 
     <script>
+        // CONFIGURATION: Menghubungkan ke Akun Cloudinary Anda
+        const CLOUDINARY_CLOUD_NAME = "dlqvmjgn"; 
+        const CLOUDINARY_BASE_URL = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_auto,q_auto,w_800/tiedy/products/`;
+
         let allProducts = [];
 
         // Load Products
@@ -659,36 +663,76 @@
             }
 
             noResults.classList.add('hidden');
-            grid.innerHTML = products.map(product => `
-                <div class="product-card p-6 flex flex-col group">
-                    <div class="aspect-square bg-tiedy-blue/10 mb-6 flex items-center justify-center relative overflow-hidden rounded-lg">
-                        <img src="${product.images ? product.images[0] : 'assets/sapu.jpg'}" alt="${product.name}" class="w-4/5 h-auto object-contain transition-all duration-700 group-hover:opacity-0 group-hover:scale-110">
-                        ${product.images && product.images[1] ? `
-                        <img src="${product.images[1]}" alt="${product.name} detail" class="absolute w-4/5 h-auto object-contain opacity-0 transition-all duration-700 group-hover:opacity-100 group-hover:scale-105">
-                        ` : ''}
-                        <div class="absolute bottom-3 left-3 flex gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-tiedy-navy/40"></span>
-                            <span class="w-1.5 h-1.5 rounded-full bg-tiedy-navy/10 group-hover:bg-tiedy-navy/40 transition-colors"></span>
+            grid.innerHTML = products.map(product => {
+                // Determine initial image (Cloudinary or local fallback)
+                const mainImg = `${CLOUDINARY_BASE_URL}${product.sku}_c1.png`;
+                const fallbackImg = "assets/sapu.jpg";
+
+                return `
+                <div class="product-card p-6 flex flex-col group" id="card-${product.sku}">
+                    <div class="aspect-square bg-tiedy-blue/5 mb-6 flex items-center justify-center relative overflow-hidden rounded-lg">
+                        <img id="img-${product.sku}" 
+                             src="${mainImg}" 
+                             onerror="this.src='${fallbackImg}'; this.onerror=null;"
+                             alt="${product.name}" 
+                             class="w-4/5 h-auto object-contain transition-all duration-500">
+                        
+                        <!-- View Switcher -->
+                        <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="changeView('${product.sku}', 'c1')" class="w-8 h-1 rounded-full bg-tiedy-navy/40 hover:bg-tiedy-navy transition-all active-view" title="Warna 1"></button>
+                            <button onclick="changeView('${product.sku}', 'c2')" class="w-8 h-1 rounded-full bg-tiedy-navy/10 hover:bg-tiedy-navy transition-all" title="Warna 2"></button>
+                            <button onclick="changeView('${product.sku}', 'pkg')" class="w-8 h-1 rounded-full bg-tiedy-navy/10 hover:bg-tiedy-navy transition-all" title="Packaging"></button>
                         </div>
-                        <div class="absolute top-3 right-3 text-[9px] font-bold tracking-widest text-tiedy-navy/20 bg-white/80 px-2 py-1 rounded">2 VIEWS</div>
+
+                        <div class="absolute top-3 right-3 text-[8px] font-bold tracking-widest text-tiedy-navy/20 bg-white/80 px-2 py-1 rounded">INTERNAL SPEC</div>
                     </div>
                     <div class="flex-1">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-[10px] font-mono font-bold text-tiedy-navy/40">${product.sku}</span>
                             <span class="text-[9px] bg-tiedy-blue px-2 py-0.5 rounded-full font-bold text-tiedy-navy/60 uppercase tracking-tighter">${product.category}</span>
                         </div>
-                        <h3 class="text-sm font-bold text-tiedy-navy group-hover:text-tiedy-navy/80 transition-colors uppercase">${product.name}</h3>
-                        <p class="text-[10px] text-tiedy-navy/60 mt-2 leading-relaxed line-clamp-2">${product.description}</p>
+                        <h3 class="text-sm font-bold text-tiedy-navy group-hover:text-tiedy-navy/80 transition-colors uppercase leading-tight">${product.name}</h3>
+                        <p class="text-[10px] text-tiedy-navy/50 mt-2 leading-relaxed line-clamp-2 italic">${product.description}</p>
                     </div>
                 </div>
-            `).join('');
+            `;}).join('');
 
-            // Re-trigger reveal animation logic if needed
+            // Scroll animations
             if (window.observer) {
                 document.querySelectorAll('.product-card').forEach(card => {
                     window.observer.observe(card);
                 });
             }
+        }
+
+        function changeView(sku, viewSuffix) {
+            const imgElement = document.getElementById(`img-${sku}`);
+            const newUrl = `${CLOUDINARY_BASE_URL}${sku}_${viewSuffix}.png`;
+            
+            // Temporary fade effect
+            imgElement.style.opacity = "0.3";
+            
+            const tempImg = new Image();
+            tempImg.src = newUrl;
+            tempImg.onload = () => {
+                imgElement.src = newUrl;
+                imgElement.style.opacity = "1";
+            };
+            tempImg.onerror = () => {
+                // If view doesn't exist, don't change or show alert
+                console.log(`View ${viewSuffix} not found for ${sku}`);
+                imgElement.style.opacity = "1";
+            };
+
+            // Update dots
+            const card = document.getElementById(`card-${sku}`);
+            const buttons = card.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-tiedy-navy/40', 'active-view');
+                btn.classList.add('bg-tiedy-navy/10');
+            });
+            event.currentTarget.classList.remove('bg-tiedy-navy/10');
+            event.currentTarget.classList.add('bg-tiedy-navy/40', 'active-view');
         }
 
         function filterProducts(category) {
