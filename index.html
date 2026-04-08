@@ -84,6 +84,26 @@
             height: 2px;
             background: #152056;
         }
+        /* Product Catalog Styles */
+        .product-card {
+            background: white;
+            border: 1px solid rgba(21, 32, 86, 0.05);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .product-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(21, 32, 86, 0.15);
+            box-shadow: 0 20px 40px -15px rgba(21, 32, 86, 0.08);
+        }
+        .filter-tab.active {
+            background: #152056;
+            color: white;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #152056;
+            box-shadow: 0 0 0 4px rgba(21, 32, 86, 0.05);
+        }
     </style>
 </head>
 <body class="bg-surface font-body text-tiedy-navy selection:bg-tiedy-blue selection:text-tiedy-navy">
@@ -101,6 +121,7 @@
             <a href="#warna" class="text-xs font-bold tracking-widest hover:text-tiedy-navy/60 transition-colors uppercase">Warna</a>
             <a href="#tipografi" class="text-xs font-bold tracking-widest hover:text-tiedy-navy/60 transition-colors uppercase">Tipografi</a>
             <a href="#visual" class="text-xs font-bold tracking-widest hover:text-tiedy-navy/60 transition-colors uppercase">Visual</a>
+            <a href="#katalog" class="text-xs font-bold tracking-widest hover:text-tiedy-navy/60 transition-colors uppercase">Katalog</a>
         </div>
     </nav>
 
@@ -133,6 +154,10 @@
                     <a href="#visual" class="group flex items-center gap-3 py-2 text-sm transition-all hover:translate-x-1">
                         <span class="w-1.5 h-1.5 rounded-full bg-tiedy-navy/20 group-hover:bg-tiedy-navy"></span>
                         Fotografi & Visual
+                    </a>
+                    <a href="#katalog" class="group flex items-center gap-3 py-2 text-sm transition-all hover:translate-x-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-tiedy-navy/20 group-hover:bg-tiedy-navy"></span>
+                        Katalog Produk
                     </a>
                 </nav>
             </div>
@@ -563,7 +588,145 @@
             </div>
         </section>
 
+        <!-- 06. KATALOG PRODUK -->
+        <section id="katalog" class="py-32 px-6 md:px-24 bg-white reveal">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+                    <div>
+                        <span class="text-xs font-bold tracking-[0.4em] text-tiedy-navy/30 mb-4 block uppercase italic">06. Katalog Produk</span>
+                        <h2 class="text-4xl md:text-5xl font-display text-tiedy-navy mb-6">Arsip Visual Internal</h2>
+                        <p class="text-tiedy-navy/60 max-w-xl text-lg leading-relaxed">
+                            Katalog komprehensif seluruh lini produk Tiedy untuk kebutuhan dokumentasi internal, panduan SKU, dan sinkronisasi label packaging.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Control Bar -->
+                <div class="flex flex-col lg:flex-row gap-6 mb-12 items-center justify-between bg-tiedy-blue/10 p-4 rounded-xl">
+                    <div class="flex flex-wrap gap-2" id="category-filters">
+                        <button onclick="filterProducts('All')" class="filter-tab active px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all">All</button>
+                        <button onclick="filterProducts('Floor Care')" class="filter-tab px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all hover:bg-white/50">Floor Care</button>
+                        <button onclick="filterProducts('Home Care')" class="filter-tab px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all hover:bg-white/50">Home Care</button>
+                        <button onclick="filterProducts('Laundry Care')" class="filter-tab px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all hover:bg-white/50">Laundry Care</button>
+                        <button onclick="filterProducts('Accessories')" class="filter-tab px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all hover:bg-white/50">Accessories</button>
+                    </div>
+                    <div class="relative w-full lg:w-96">
+                        <input type="text" id="product-search" onkeyup="searchProducts()" placeholder="Cari SKU atau Nama Produk..." class="search-input w-full px-6 py-3 bg-white rounded-full text-sm border border-tiedy-navy/5 transition-all">
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 text-tiedy-navy/30">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Grid -->
+                <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                    <!-- Products will be injected here -->
+                </div>
+
+                <!-- No Results -->
+                <div id="no-results" class="hidden py-24 text-center">
+                    <p class="text-tiedy-navy/40 font-medium">Tidak ada produk yang sesuai dengan pencarian Anda.</p>
+                </div>
+            </div>
+        </section>
+
     </main>
+
+    <script>
+        let allProducts = [];
+
+        // Load Products
+        async function loadProducts() {
+            try {
+                const response = await fetch('assets/products.json');
+                allProducts = await response.json();
+                renderProducts(allProducts);
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+
+        function renderProducts(products) {
+            const grid = document.getElementById('product-grid');
+            const noResults = document.getElementById('no-results');
+            
+            if (products.length === 0) {
+                grid.innerHTML = '';
+                noResults.classList.remove('hidden');
+                return;
+            }
+
+            noResults.classList.add('hidden');
+            grid.innerHTML = products.map(product => `
+                <div class="product-card p-6 flex flex-col group">
+                    <div class="aspect-square bg-tiedy-blue/10 mb-6 flex items-center justify-center relative overflow-hidden rounded-lg">
+                        <img src="assets/sapu.jpg" alt="${product.name}" class="w-4/5 h-auto object-contain transition-transform duration-700 group-hover:scale-110">
+                        <div class="absolute bottom-3 left-3 flex gap-1">
+                            <span class="w-2 h-2 rounded-full bg-tiedy-navy/20 active-state"></span>
+                            <span class="w-2 h-2 rounded-full bg-tiedy-navy/10"></span>
+                            <span class="w-2 h-2 rounded-full bg-tiedy-navy/10"></span>
+                        </div>
+                        <div class="absolute top-3 right-3 text-[9px] font-bold tracking-widest text-tiedy-navy/20 bg-white/80 px-2 py-1 rounded">MULTI VIEW</div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-mono font-bold text-tiedy-navy/40">${product.sku}</span>
+                            <span class="text-[9px] bg-tiedy-blue px-2 py-0.5 rounded-full font-bold text-tiedy-navy/60 uppercase tracking-tighter">${product.category}</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-tiedy-navy group-hover:text-tiedy-navy/80 transition-colors">${product.name}</h3>
+                    </div>
+                </div>
+            `).join('');
+
+            // Re-trigger reveal animation logic if needed
+            if (window.observer) {
+                document.querySelectorAll('.product-card').forEach(card => {
+                    window.observer.observe(card);
+                });
+            }
+        }
+
+        function filterProducts(category) {
+            // Update UI tabs
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active', 'bg-tiedy-navy', 'text-white');
+                tab.classList.add('hover:bg-white/50');
+                if (tab.innerText.toLowerCase() === category.toLowerCase()) {
+                    tab.classList.add('active', 'bg-tiedy-navy', 'text-white');
+                }
+            });
+
+            if (category === 'All') {
+                renderProducts(allProducts);
+            } else {
+                const filtered = allProducts.filter(p => p.category === category);
+                renderProducts(filtered);
+            }
+            
+            // Clear search when filtering
+            document.getElementById('product-search').value = '';
+        }
+
+        function searchProducts() {
+            const query = document.getElementById('product-search').value.toLowerCase();
+            const filtered = allProducts.filter(p => 
+                p.sku.toLowerCase().includes(query) || 
+                p.name.toLowerCase().includes(query)
+            );
+            renderProducts(filtered);
+
+            // Reset tabs when searching
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active', 'bg-tiedy-navy', 'text-white');
+                if (tab.innerText === 'All') tab.classList.add('active', 'bg-tiedy-navy', 'text-white');
+            });
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', loadProducts);
+    </script>
 
     <!-- Footer -->
     <footer class="mt-32 border-t border-tiedy-navy/5 py-20 bg-white px-12">
