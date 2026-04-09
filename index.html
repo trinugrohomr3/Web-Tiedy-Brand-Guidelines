@@ -13,6 +13,7 @@
     <!-- Tailwind CSS & Utilities -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <script>
         tailwind.config = {
@@ -694,8 +695,7 @@
             </div>
         </section>
 
-    </main>
-
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script type="module">
         // --- FIREBASE CONFIGURATION ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
@@ -711,7 +711,6 @@
             measurementId: "G-75EKECH8YC"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const productsCol = collection(db, "products");
@@ -726,32 +725,40 @@
         let isAdmin = localStorage.getItem('tiedy_admin') === 'true';
         let logoClickCount = 0;
         let currentModalSku = null;
+        let currentViewIndex = 0; // Index of the image being viewed in modal
 
         // --- CORE FUNCTIONS ---
 
-        // 1. Load Data (Real-time from Firestore)
         function loadProducts() {
             onSnapshot(productsCol, (snapshot) => {
-                allProducts = snapshot.docs.map(doc => ({ sku: doc.id, ...doc.data() }));
+                allProducts = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    // --- MIGRATION LOGIC ---
+                    // Jika field 'images' belum ada, buat dari field lama img_c1, img_c2, img_pkg
+                    if (!data.images) {
+                        data.images = [
+                            data.img_c1 || `${CLOUDINARY_BASE_URL}${doc.id}_c1.png`,
+                            data.img_c2 || `${CLOUDINARY_BASE_URL}${doc.id}_c2.png`,
+                            data.img_pkg || `${CLOUDINARY_BASE_URL}${doc.id}_pkg.png`
+                        ].filter(Boolean);
+                    }
+                    return { sku: doc.id, ...data };
+                });
                 
-                // Jika database kosong, render dari JSON lokal sebagai cadangan (hanya visual)
                 if (allProducts.length === 0) {
-                    console.log("Firestore empty, fetching local products.json...");
                     fetch('assets/products.json').then(r => r.json()).then(data => {
-                        allProducts = data;
+                        allProducts = data.map(p => ({ ...p, images: [p.img_c1, p.img_c2, p.img_pkg].filter(Boolean) }));
                         renderProducts(allProducts);
                         document.getElementById('migrate-btn').classList.remove('hidden');
                     });
                 } else {
                     renderProducts(allProducts);
                     document.getElementById('migrate-btn').classList.add('hidden');
-                    // Sync Modal if open
                     if (currentModalSku) {
                         const p = allProducts.find(x => x.sku === currentModalSku);
                         if (p) refreshModalUI(p);
                     }
                 }
-
                 if (isAdmin) enterAdminUI();
             });
         }
@@ -760,27 +767,20 @@
             const grid = document.getElementById('product-grid');
             const noResults = document.getElementById('no-results');
             if (products.length === 0) {
-                grid.innerHTML = '';
-                noResults.classList.remove('hidden');
-                return;
+                grid.innerHTML = ''; noResults.classList.remove('hidden'); return;
             }
             noResults.classList.add('hidden');
             grid.innerHTML = products.map(product => {
-                const mainImg = product.img_c1 || `${CLOUDINARY_BASE_URL}${product.sku}_c1.png`;
-                const fallbackImg = "assets/sapu.jpg";
+                const images = product.images || [];
+                const mainImg = images[0] || "assets/sapu.jpg";
                 return `
                 <div class="product-card p-6 flex flex-col group cursor-pointer" 
                      id="card-${product.sku}" 
                      onclick="openProductModal('${product.sku}')"
-                     onmouseenter="hoverView('${product.sku}', 'c2')"
-                     onmouseleave="hoverView('${product.sku}', 'c1')">
+                     onmouseenter="hoverView('${product.sku}', 1)"
+                     onmouseleave="hoverView('${product.sku}', 0)">
                     <div class="aspect-square bg-tiedy-blue/5 mb-6 flex items-center justify-center relative overflow-hidden rounded-lg">
-                        <img id="img-${product.sku}" src="${mainImg}" onerror="this.src='${fallbackImg}'; this.onerror=null;" alt="${product.name}" class="w-4/5 h-auto object-contain">
-                        <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation()">
-                            <button onclick="changeView('${product.sku}', 'c1')" class="w-8 h-1 rounded-full bg-tiedy-navy/40 hover:bg-tiedy-navy transition-all active-view" title="Warna 1"></button>
-                            <button onclick="changeView('${product.sku}', 'c2')" class="w-8 h-1 rounded-full bg-tiedy-navy/10 hover:bg-tiedy-navy transition-all" title="Warna 2"></button>
-                            <button onclick="changeView('${product.sku}', 'pkg')" class="w-8 h-1 rounded-full bg-tiedy-navy/10 hover:bg-tiedy-navy transition-all" title="Packaging"></button>
-                        </div>
+                        <img id="img-${product.sku}" src="${mainImg}" onerror="this.src='assets/sapu.jpg'; this.onerror=null;" alt="${product.name}" class="w-4/5 h-auto object-contain">
                     </div>
                     <div class="flex-1">
                         <div class="flex items-center justify-between mb-2">
@@ -794,120 +794,101 @@
             }).join('');
         }
 
-        // 2. Database Write Logic
         async function updateFirestore(sku, data) {
             if (!isAdmin) return;
+            const productRef = doc(db, "products", sku);
             try {
-                const productRef = doc(db, "products", sku);
                 await updateDoc(productRef, data);
             } catch (err) {
-                // If doc doesn't exist, use setDoc
-                if (err.code === 'not-found' || err.code === 'permission-denied') {
-                    console.warn("Update failed, attempting setDoc...", err);
-                    const productRef = doc(db, "products", sku);
-                    const p = allProducts.find(x => x.sku === sku);
-                    await setDoc(productRef, { ...p, ...data });
-                }
+                const p = allProducts.find(x => x.sku === sku);
+                await setDoc(productRef, { ...p, ...data });
             }
         }
 
-        // 3. UI Helpers (Exposed to global window)
         window.openProductModal = (sku) => {
             const product = allProducts.find(p => p.sku === sku);
             if (!product) return;
             currentModalSku = sku;
+            currentViewIndex = 0;
             refreshModalUI(product);
             document.getElementById('product-modal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             
-            // Admin editing
             const nameEl = document.getElementById('modal-name');
             const descEl = document.getElementById('modal-desc');
-            nameEl.contentEditable = isAdmin;
-            descEl.contentEditable = isAdmin;
+            nameEl.contentEditable = isAdmin; descEl.contentEditable = isAdmin;
             nameEl.onblur = () => updateFirestore(sku, { name: nameEl.innerText });
             descEl.onblur = () => updateFirestore(sku, { description: descEl.innerText });
         };
 
         function refreshModalUI(product) {
-            const sku = product.sku;
-            document.getElementById('modal-sku').innerText = `SKU ${sku}`;
+            const images = product.images || [];
+            document.getElementById('modal-sku').innerText = `SKU ${product.sku}`;
             document.getElementById('modal-name').innerText = product.name;
             document.getElementById('modal-category').innerText = product.category;
             document.getElementById('modal-desc').innerText = product.description;
             
             const mainImg = document.getElementById('modal-main-img');
-            const thumbContainer = document.getElementById('modal-gallery-thumbs');
-            mainImg.src = product.img_c1 || `${CLOUDINARY_BASE_URL}${sku}_c1.png`;
+            mainImg.src = images[currentViewIndex] || "assets/sapu.jpg";
 
-            thumbContainer.innerHTML = '';
-            ['c1', 'c2', 'pkg'].forEach(suffix => {
-                const thumb = document.createElement('div');
-                thumb.className = "w-16 h-16 rounded-lg border border-tiedy-navy/5 bg-white p-2 cursor-pointer hover:border-tiedy-navy/20 transition-all relative overflow-hidden group/thumb";
-                
-                const url = product[`img_${suffix}`] || `${CLOUDINARY_BASE_URL}${sku}_${suffix}.png`;
-                
-                // Jika bukan admin dan gambar tidak ada, sembunyikan. 
-                // Jika admin, biarkan muncul agar bisa di-upload.
-                thumb.innerHTML = `
-                    <img src="${url}" class="w-full h-full object-contain" 
-                         onerror="${isAdmin ? "this.src='assets/logo.png'; this.style.opacity='0.2';" : "this.parentElement.style.display='none'"}">
-                    <button onclick="openUploadWidget('${suffix}')" class="admin-only absolute inset-0 bg-tiedy-navy/80 text-white flex items-center justify-center ${isAdmin ? 'opacity-40 hover:opacity-100' : 'opacity-0'} transition-opacity">
-                        <span class="material-symbols-outlined text-xs">upload</span>
-                    </button>`;
-                
-                thumb.onclick = (e) => {
-                    if (!e.target.closest('.admin-only')) {
-                        mainImg.src = url;
-                        mainImg.onerror = () => mainImg.src = 'assets/sapu.jpg';
-                    }
-                };
-                thumbContainer.appendChild(thumb);
+            const thumbContainer = document.getElementById('modal-gallery-thumbs');
+            thumbContainer.innerHTML = images.map((url, idx) => `
+                <div class="thumbnail-item w-16 h-16 rounded-lg border bg-white p-2 cursor-pointer relative overflow-hidden group/thumb ${idx === currentViewIndex ? 'border-tiedy-navy' : 'border-tiedy-navy/5'}" data-index="${idx}">
+                    <img src="${url}" class="w-full h-full object-contain" onclick="setActiveImage(${idx})">
+                    <button onclick="removeImage(${idx})" class="admin-only absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                        <span class="material-symbols-outlined text-[10px]">close</span>
+                    </button>
+                    ${isAdmin ? `<div class="drag-handle absolute inset-0 cursor-move opacity-0"></div>` : ''}
+                </div>
+            `).join('');
+
+            if (isAdmin) {
+                const addBtn = document.createElement('div');
+                addBtn.className = "w-16 h-16 rounded-lg border-2 border-dashed border-tiedy-navy/20 flex items-center justify-center cursor-pointer hover:border-tiedy-navy/40 transition-all";
+                addBtn.innerHTML = '<span class="material-symbols-outlined text-tiedy-navy/40">add_a_photo</span>';
+                addBtn.onclick = () => openUploadWidget();
+                thumbContainer.appendChild(addBtn);
+                initSortable();
+            }
+
+            // Update Dots
+            const dotsContainer = document.getElementById('modal-dots-indicator');
+            dotsContainer.innerHTML = images.map((_, idx) => `
+                <div class="w-1.5 h-1.5 rounded-full ${idx === currentViewIndex ? 'bg-tiedy-navy/40' : 'bg-tiedy-navy/10'}"></div>
+            `).join('');
+        }
+
+        function initSortable() {
+            const el = document.getElementById('modal-gallery-thumbs');
+            Sortable.create(el, {
+                animation: 150,
+                draggable: '.thumbnail-item',
+                onEnd: async function () {
+                    const product = allProducts.find(p => p.sku === currentModalSku);
+                    const newOrder = Array.from(el.querySelectorAll('.thumbnail-item')).map(item => {
+                         return product.images[parseInt(item.dataset.index)];
+                    });
+                    currentViewIndex = 0; // Reset focus to first image after reorder
+                    await updateFirestore(currentModalSku, { images: newOrder });
+                }
             });
         }
 
-        // Admin Auth
-        window.handleLogoClick = () => {
-            logoClickCount++;
-            if (logoClickCount === 5) {
-                if (prompt("Password:") === "123") enterAdmin();
-                logoClickCount = 0;
-            }
-            setTimeout(() => logoClickCount = 0, 2000);
+        window.setActiveImage = (idx) => {
+            currentViewIndex = idx;
+            const p = allProducts.find(x => x.sku === currentModalSku);
+            refreshModalUI(p);
         };
 
-        function enterAdmin() {
-            isAdmin = true;
-            localStorage.setItem('tiedy_admin', 'true');
-            enterAdminUI();
-            alert("Admin Mode: Active (Firestore Connection)");
-        }
-
-        function enterAdminUI() {
-            document.body.classList.add('admin-active');
-            document.getElementById('admin-pill').style.display = 'flex';
-        }
-
-        window.exitAdmin = () => {
-            if (confirm("Keluar?")) {
-                localStorage.removeItem('tiedy_admin');
-                location.reload();
-            }
+        window.removeImage = async (idx) => {
+            if (!confirm("Hapus foto ini dari galeri?")) return;
+            const p = allProducts.find(x => x.sku === currentModalSku);
+            const updatedImages = p.images.filter((_, i) => i !== idx);
+            currentViewIndex = 0;
+            await updateFirestore(currentModalSku, { images: updatedImages });
         };
 
-        // Migration logic
-        window.migrateData = async () => {
-            if (!confirm("Pindahkan data dari JSON lokal ke Firebase sekarang?")) return;
-            for (const p of allProducts) {
-                await setDoc(doc(db, "products", p.sku), p);
-                console.log("Migrating SKU:", p.sku);
-            }
-            alert("Migrasi Selesai!");
-            document.getElementById('migrate-btn').classList.add('hidden');
-        };
-
-        // Upload logic
-        window.openUploadWidget = (suffix) => {
+        window.openUploadWidget = () => {
             if (!isAdmin) return;
             cloudinary.openUploadWidget({
                 cloudName: CLOUDINARY_CLOUD_NAME,
@@ -915,76 +896,49 @@
                 folder: "tiedy/products",
                 resourceType: "image",
                 multiple: false,
-                // --- LIMIT FINAL < 120KB (600PX & KOMPRESI EKSTREM) ---
                 clientAllowedFormats: ["jpg", "png", "webp", "jpeg"], 
-                maxImageWidth: 600,
-                maxImageHeight: 600,
-                imageCompression: 0.1,
-                transformation: [
-                    { 
-                        width: 600, 
-                        crop: "limit", 
-                        quality: "auto:low", 
-                        fetch_format: "auto"
-                    }
-                ]
-            }, (error, result) => {
+                maxImageWidth: 600, maxImageHeight: 600, imageCompression: 0.1,
+                transformation: [{ width: 600, crop: "limit", quality: "auto:low", fetch_format: "auto" }]
+            }, async (error, result) => {
                 if (!error && result.event === "success") {
                     const newUrl = result.info.secure_url;
-                    updateFirestore(currentModalSku, { [`img_${suffix}`]: newUrl });
-                    alert("HASIL OPTIMAL! File sekarang sangat ringan (<120KB).");
+                    const p = allProducts.find(x => x.sku === currentModalSku);
+                    const updatedImages = [...(p.images || []), newUrl];
+                    await updateFirestore(currentModalSku, { images: updatedImages });
                 }
             });
         };
 
-        // Standard helpers
-        // 4. Modal Navigation Logic
-        const viewOrder = ['c1', 'c2', 'pkg'];
-        let currentViewSuffix = 'c1';
-
         window.navigateModal = (direction) => {
-            const currentIndex = viewOrder.indexOf(currentViewSuffix);
-            let nextIndex = currentIndex + direction;
-            
-            if (nextIndex < 0) nextIndex = viewOrder.length - 1;
-            if (nextIndex >= viewOrder.length) nextIndex = 0;
-            
-            const nextSuffix = viewOrder[nextIndex];
-            const product = allProducts.find(p => p.sku === currentModalSku);
-            const nextUrl = product[`img_${nextSuffix}`] || `${CLOUDINARY_BASE_URL}${currentModalSku}_${nextSuffix}.png`;
-            
-            currentViewSuffix = nextSuffix;
-            const mainImg = document.getElementById('modal-main-img');
-            mainImg.style.opacity = "0.3";
-            mainImg.src = nextUrl;
-            setTimeout(() => mainImg.style.opacity = "1", 300);
-            
-            // Update dots
-            viewOrder.forEach(s => {
-                const dot = document.getElementById(`modal-dot-${s}`);
-                if (dot) {
-                    dot.classList.remove('bg-tiedy-navy/40');
-                    dot.classList.add('bg-tiedy-navy/10');
-                }
-            });
-            const activeDot = document.getElementById(`modal-dot-${nextSuffix}`);
-            if (activeDot) {
-                activeDot.classList.remove('bg-tiedy-navy/10');
-                activeDot.classList.add('bg-tiedy-navy/40');
-            }
+            const p = allProducts.find(x => x.sku === currentModalSku);
+            const total = p.images.length;
+            currentViewIndex = (currentViewIndex + direction + total) % total;
+            refreshModalUI(p);
+        };
+
+        window.hoverView = (sku, idx) => {
+            const p = allProducts.find(x => x.sku === sku);
+            if (!p || !p.images) return;
+            const img = document.getElementById(`img-${sku}`);
+            img.src = p.images[idx] || p.images[0] || "assets/sapu.jpg";
         };
 
         window.closeProductModal = () => {
             document.getElementById('product-modal').classList.add('hidden');
             document.body.style.overflow = 'auto';
             currentModalSku = null;
-            currentViewSuffix = 'c1'; // Reset
         };
-        window.changeView = (sku, suffix) => {
-            const p = allProducts.find(x => x.sku === sku);
-            const img = document.getElementById(`img-${sku}`);
-            img.src = p[`img_${suffix}`] || `${CLOUDINARY_BASE_URL}${sku}_${suffix}.png`;
+
+        window.migrateData = async () => {
+            if (!confirm("Migrasi data ke Firestore?")) return;
+            for (const p of allProducts) {
+                const images = [p.img_c1, p.img_c2, p.img_pkg].filter(Boolean);
+                await setDoc(doc(db, "products", p.sku), { ...p, images });
+            }
+            alert("Selesai!");
         };
+
+        // Standard helpers
         window.filterProducts = (cat) => {
             renderProducts(cat === 'All' ? allProducts : allProducts.filter(p => p.category === cat));
             document.querySelectorAll('.filter-tab').forEach(t => {
@@ -994,45 +948,37 @@
             });
         };
         window.searchProducts = () => {
-            const q = document.getElementById('product-search').value.toLowerCase();
-            renderProducts(allProducts.filter(p => p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)));
+             const q = document.getElementById('product-search').value.toLowerCase();
+             renderProducts(allProducts.filter(p => p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)));
         };
         window.downloadImage = () => {
-            const link = document.createElement('a');
-            link.href = document.getElementById('modal-main-img').src;
-            link.download = `Tiedy-${currentModalSku}.png`;
-            link.click();
+             const link = document.createElement('a');
+             link.href = document.getElementById('modal-main-img').src;
+             link.download = `Tiedy-${currentModalSku}.png`;
+             link.click();
+        };
+        window.handleLogoClick = () => {
+            logoClickCount++;
+            if (logoClickCount === 5) { if (prompt("Pass:") === "123") enterAdmin(); logoClickCount = 0; }
+            setTimeout(() => logoClickCount = 0, 2000);
+        };
+        window.exitAdmin = () => {
+             if (confirm("Keluar?")) { localStorage.removeItem('tiedy_admin'); location.reload(); }
         };
 
-        window.hoverView = (sku, suffix) => {
-            const p = allProducts.find(x => x.sku === sku);
-            if (!p) return;
-            const img = document.getElementById(`img-${sku}`);
-            const url = p[`img_${suffix}`] || `${CLOUDINARY_BASE_URL}${sku}_${suffix}.png`;
-            img.src = url;
-        };
-
-        // Interior Zoom Logic
         const initZoom = () => {
             const container = document.getElementById('modal-image-container');
             const img = document.getElementById('modal-main-img');
-
             container.addEventListener('mousemove', (e) => {
                 const rect = container.getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 100;
                 const y = ((e.clientY - rect.top) / rect.height) * 100;
                 img.style.transformOrigin = `${x}% ${y}%`;
             });
-
-            container.addEventListener('mouseleave', () => {
-                img.style.transformOrigin = 'center center';
-            });
+            container.addEventListener('mouseleave', () => { img.style.transformOrigin = 'center center'; });
         };
 
-        document.addEventListener('DOMContentLoaded', () => {
-             loadProducts();
-             initZoom();
-        });
+        document.addEventListener('DOMContentLoaded', () => { loadProducts(); initZoom(); });
     </script>
 
     <!-- Product Detail Modal -->
@@ -1061,10 +1007,8 @@
                             </button>
 
                             <!-- View Indicator Dots in Modal -->
-                            <div class="absolute bottom-4 flex gap-2">
-                                <div id="modal-dot-c1" class="w-1.5 h-1.5 rounded-full bg-tiedy-navy/40"></div>
-                                <div id="modal-dot-c2" class="w-1.5 h-1.5 rounded-full bg-tiedy-navy/10"></div>
-                                <div id="modal-dot-pkg" class="w-1.5 h-1.5 rounded-full bg-tiedy-navy/10"></div>
+                            <div id="modal-dots-indicator" class="absolute bottom-4 flex gap-2">
+                                <!-- Dots injected via JS -->
                             </div>
                         </div>
                         
