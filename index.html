@@ -168,6 +168,38 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             border: 1px solid rgba(255,255,255,0.1);
         }
+
+        /* Category Picker Styles */
+        .category-checkbox-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid rgba(0, 26, 51, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            background: #f8fafc;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            cursor: pointer;
+        }
+
+        .category-item input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .category-item label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #001A33;
+            cursor: pointer;
+        }
         .admin-active .admin-pill { display: flex; }
     </style>
 </head>
@@ -821,9 +853,8 @@
             const nameEl = document.getElementById('modal-name');
             const descEl = document.getElementById('modal-desc');
             const skuEl = document.getElementById('modal-sku');
-            const catEl = document.getElementById('modal-category');
 
-            [nameEl, descEl, skuEl, catEl].forEach(el => {
+            [nameEl, descEl, skuEl].forEach(el => {
                 el.contentEditable = isAdmin;
                 if (isAdmin) el.classList.add('editable-admin');
                 else el.classList.remove('editable-admin');
@@ -831,11 +862,12 @@
 
             nameEl.onblur = () => updateFirestore(sku, { name: nameEl.innerText });
             descEl.onblur = () => updateFirestore(sku, { description: descEl.innerText });
-            catEl.onblur = () => updateFirestore(sku, { category: catEl.innerText });
             skuEl.onblur = () => {
                 const newSku = skuEl.innerText.replace('SKU ', '').trim();
                 changeSku(sku, newSku);
             };
+
+            if (isAdmin) renderCategoryPickerForModal(sku, product.category);
         };
 
         function refreshModalUI(product) {
@@ -1050,13 +1082,16 @@
         window.addProduct = () => {
              if (!isAdmin) return;
              document.getElementById('add-product-modal').classList.remove('hidden');
+             renderCategoryPicker("new-category-picker", "", (val) => {
+                 document.getElementById('temp-new-categories').value = val;
+             });
         };
 
         window.submitNewProduct = async (e) => {
             e.preventDefault();
             const sku = document.getElementById('new-sku').value.trim();
             const name = document.getElementById('new-name').value.trim();
-            const category = document.getElementById('new-category').value.trim();
+            const category = document.getElementById('temp-new-categories').value || "General";
 
             if (allProducts.find(p => p.sku === sku)) {
                 alert("SKU sudah ada!"); return;
@@ -1079,12 +1114,105 @@
             document.getElementById('add-product-form').reset();
         };
 
-        function enterAdminUI() {
+                function enterAdminUI() {
             document.body.classList.add('admin-active');
             const pill = document.getElementById('admin-pill');
             if (pill) pill.style.display = 'flex';
             renderProducts(allProducts); // Refresh untuk memunculkan fitur admin
         }
+
+        // --- CATEGORY PICKER CORE ---
+        function getUniqueCategories() {
+            const allCats = new Set();
+            allProducts.forEach(p => {
+                if (p.category) p.category.split(',').forEach(c => allCats.add(c.trim()));
+            });
+            return Array.from(allCats).sort();
+        }
+
+        function renderCategoryPicker(containerId, currentSelectedString, onUpdate) {
+            const container = document.getElementById(containerId);
+            const allCats = getUniqueCategories();
+            const selected = (currentSelectedString || '').split(',').map(c => c.trim()).filter(Boolean);
+
+            const html = `
+                <div class="category-checkbox-list mb-4">
+                    ${allCats.map(cat => `
+                        <div class="category-item">
+                            <input type="checkbox" id="check-${containerId}-${cat}" value="${cat}" ${selected.includes(cat) ? 'checked' : ''} onchange="handlePickerChange('${containerId}')">
+                            <label for="check-${containerId}-${cat}">${cat}</label>
+                        </div>
+                    `).join('')}
+                    <div class="mt-4 pt-4 border-t border-tiedy-navy/10">
+                        <input type="text" id="new-cat-input-${containerId}" placeholder="➕ Tambah Kategori Baru..." class="w-full text-xs font-bold p-2 border rounded border-tiedy-navy/10">
+                        <button type="button" onclick="addNewCategoryFromPicker('${containerId}')" class="w-full mt-2 text-[10px] bg-tiedy-navy text-white p-2 rounded font-bold uppercase tracking-widest">Tambah</button>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+            container.dataset.onUpdate = onUpdate.toString();
+        }
+
+        window.handlePickerChange = (containerId) => {
+            const container = document.getElementById(containerId);
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+            const values = Array.from(checkboxes).map(cb => cb.value).join(', ');
+            
+            // Execute the stored callback (logic slightly complex for dynamic window functions)
+            // But we'll handle it by checking IDs
+            if (containerId === "new-category-picker") {
+                document.getElementById('temp-new-categories').value = values;
+            } else if (containerId.startsWith('modal-cat-picker-')) {
+                const sku = containerId.replace('modal-cat-picker-', '');
+                updateFirestore(sku, { category: values });
+            }
+        };
+
+        window.addNewCategoryFromPicker = (containerId) => {
+             const input = document.getElementById(`new-cat-input-${containerId}`);
+             const val = input.value.trim();
+             if (!val) return;
+             
+             // Check if already exists in checkboxes
+             const container = document.getElementById(containerId);
+             const list = container.querySelector('.category-checkbox-list');
+             
+             // Add it as a new checkbox and check it
+             const newItem = document.createElement('div');
+             newItem.className = "category-item";
+             newItem.innerHTML = `
+                <input type="checkbox" id="check-${containerId}-${val}" value="${val}" checked onchange="handlePickerChange('${containerId}')">
+                <label for="check-${containerId}-${val}">${val}</label>
+             `;
+             list.insertBefore(newItem, list.lastElementChild.previousElementSibling.previousElementSibling);
+             input.value = '';
+             handlePickerChange(containerId);
+        };
+
+        function renderCategoryPickerForModal(sku, currentCats) {
+            const catContainer = document.getElementById('modal-category');
+            catContainer.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span id="modal-cat-display">${currentCats || 'General'}</span>
+                    <button onclick="toggleCategoryEdit('${sku}')" class="text-tiedy-navy/40 hover:text-tiedy-navy">
+                        <span class="material-symbols-outlined text-xs">edit</span>
+                    </button>
+                </div>
+                <div id="modal-cat-picker-${sku}" class="hidden mt-4"></div>
+            `;
+        }
+
+        window.toggleCategoryEdit = (sku) => {
+            const picker = document.getElementById(`modal-cat-picker-${sku}`);
+            const isHidden = picker.classList.contains('hidden');
+            if (isHidden) {
+                const p = allProducts.find(x => x.sku === sku);
+                renderCategoryPicker(`modal-cat-picker-${sku}`, p.category, () => {});
+                picker.classList.remove('hidden');
+            } else {
+                picker.classList.add('hidden');
+            }
+        };
 
         const initZoom = () => {
             const container = document.getElementById('modal-image-container');
@@ -1238,8 +1366,9 @@
                         <input type="text" id="new-name" required placeholder="Nama Produk..." class="w-full rounded-lg border-tiedy-navy/10 focus:ring-tiedy-navy focus:border-tiedy-navy">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-tiedy-navy/40 uppercase mb-2">Kategori</label>
-                        <input type="text" id="new-category" required placeholder="Cleaning / Tools" class="w-full rounded-lg border-tiedy-navy/10 focus:ring-tiedy-navy focus:border-tiedy-navy">
+                        <label class="block text-[10px] font-bold text-tiedy-navy/40 uppercase mb-2">Kategori (Pilih satu atau lebih)</label>
+                        <div id="new-category-picker"></div>
+                        <input type="hidden" id="temp-new-categories" value="General">
                     </div>
                     <div class="pt-4 flex gap-3">
                         <button type="button" onclick="closeAddModal()" class="flex-1 py-3 bg-tiedy-navy/5 text-tiedy-navy font-bold rounded-xl hover:bg-tiedy-navy/10 transition-all text-sm">Batal</button>
