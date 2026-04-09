@@ -887,16 +887,20 @@
                 folder: "tiedy/products",
                 resourceType: "image",
                 multiple: false,
-                // --- KOMPRESI AGRESIF (Target ~120KB) ---
-                clientAllowedFormats: ["jpg", "jpeg"], // Hindari PNG agar tidak bengkak
-                maxImageWidth: 1000,                   // Resolusi cukup untuk web
+                // --- KUNCI JAMINAN KOMPRESI (SERVER-SIDE) ---
+                clientAllowedFormats: ["jpg", "png", "webp", "jpeg"], 
+                maxImageWidth: 1000,
                 maxImageHeight: 1000,
-                imageCompression: 0.5                  // Kompresi 50% (Sangat ringan tapi tetap tajam)
+                imageCompression: 0.6,
+                // Perintah tambahan agar Cloudinary memproses ulang file di server
+                transformation: [
+                    { width: 1000, crop: "limit", quality: "auto:eco", fetch_format: "auto" }
+                ]
             }, (error, result) => {
                 if (!error && result.event === "success") {
                     const newUrl = result.info.secure_url;
                     updateFirestore(currentModalSku, { [`img_${suffix}`]: newUrl });
-                    alert("FOTO BERHASIL DIKOMPRES & DISIMPAN!");
+                    alert("JAMINAN KOMPRESI BERHASIL! File disimpan dalam versi sangat ringan.");
                 }
             });
         };
