@@ -669,11 +669,7 @@
                 <!-- Control Bar -->
                 <div class="flex flex-col lg:flex-row gap-6 mb-12 items-center justify-between bg-tiedy-blue/10 p-4 rounded-xl">
                     <div class="flex flex-wrap gap-2" id="category-filters">
-                        <button onclick="filterProducts('All')" class="filter-tab active px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all">All</button>
-                        <button onclick="filterProducts('Floor Care')" class="filter-tab px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all hover:bg-white/50">Floor Care</button>
-                        <button onclick="filterProducts('Home Care')" class="filter-tab px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all hover:bg-white/50">Home Care</button>
-                        <button onclick="filterProducts('Laundry Care')" class="filter-tab px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all hover:bg-white/50">Laundry Care</button>
-                        <button onclick="filterProducts('Accessories')" class="filter-tab px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all hover:bg-white/50">Accessories</button>
+                        <!-- Dynamic Buttons Injected by JS -->
                     </div>
                     <div class="relative w-full lg:w-96">
                         <input type="text" id="product-search" onkeyup="searchProducts()" placeholder="Cari SKU atau Nama Produk..." class="search-input w-full px-6 py-3 bg-white rounded-full text-sm border border-tiedy-navy/5 transition-all">
@@ -751,10 +747,12 @@
                     fetch('assets/products.json').then(r => r.json()).then(data => {
                         allProducts = data.map(p => ({ ...p, images: [p.img_c1, p.img_c2, p.img_pkg].filter(Boolean) }));
                         renderProducts(allProducts);
+                        renderCategoryFilters(); 
                         document.getElementById('migrate-btn').classList.remove('hidden');
                     });
                 } else {
                     renderProducts(allProducts);
+                    renderCategoryFilters(); 
                     document.getElementById('migrate-btn').classList.add('hidden');
                     if (currentModalSku) {
                         const p = allProducts.find(x => x.sku === currentModalSku);
@@ -775,6 +773,7 @@
             grid.innerHTML = products.map(product => {
                 const images = product.images || [];
                 const mainImg = images[0] || "assets/sapu.jpg";
+                const cats = (product.category || 'General').split(',').map(c => c.trim());
                 return `
                 <div class="product-card p-6 flex flex-col group cursor-pointer" 
                      id="card-${product.sku}" 
@@ -787,7 +786,9 @@
                     <div class="flex-1">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-[10px] font-mono font-bold text-tiedy-navy/40">${product.sku}</span>
-                            <span class="text-[9px] bg-tiedy-blue px-2 py-0.5 rounded-full font-bold text-tiedy-navy/60 uppercase tracking-tighter">${product.category}</span>
+                            <div class="flex flex-wrap justify-end gap-1">
+                                ${cats.map(c => `<span class="text-[8px] bg-tiedy-blue px-2 py-0.5 rounded-full font-bold text-tiedy-navy/60 uppercase tracking-tighter">${c}</span>`).join('')}
+                            </div>
                         </div>
                         <h3 class="text-sm font-bold text-tiedy-navy group-hover:text-tiedy-navy/80 transition-colors uppercase leading-tight">${product.name}</h3>
                         <p class="text-[10px] text-tiedy-navy/50 mt-2 leading-relaxed line-clamp-2 italic">${product.description}</p>
@@ -979,14 +980,36 @@
             alert("Selesai!");
         };
 
+        let currentFilter = 'All';
+
+        function renderCategoryFilters() {
+            const container = document.getElementById('category-filters');
+            const allCats = new Set();
+            allProducts.forEach(p => {
+                if (p.category) {
+                    p.category.split(',').forEach(c => allCats.add(c.trim()));
+                }
+            });
+
+            const sortedCats = ['All', ...Array.from(allCats).sort()];
+            container.innerHTML = sortedCats.map(cat => `
+                <button onclick="filterProducts('${cat}')" 
+                        class="filter-tab px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${cat === currentFilter ? 'active bg-tiedy-navy text-white' : 'hover:bg-white/50'}">
+                    ${cat}
+                </button>
+            `).join('');
+        }
+
         // Standard helpers
         window.filterProducts = (cat) => {
-            renderProducts(cat === 'All' ? allProducts : allProducts.filter(p => p.category === cat));
-            document.querySelectorAll('.filter-tab').forEach(t => {
-                t.classList.toggle('active', t.innerText === cat);
-                t.classList.toggle('bg-tiedy-navy', t.innerText === cat);
-                t.classList.toggle('text-white', t.innerText === cat);
-            });
+            currentFilter = cat;
+            renderCategoryFilters(); // Re-render to update active state
+            
+            const filtered = cat === 'All' 
+                ? allProducts 
+                : allProducts.filter(p => p.category && p.category.split(',').map(c => c.trim()).includes(cat));
+            
+            renderProducts(filtered);
         };
         window.searchProducts = () => {
              const q = document.getElementById('product-search').value.toLowerCase();
