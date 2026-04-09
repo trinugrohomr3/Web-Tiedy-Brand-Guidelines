@@ -887,16 +887,16 @@
                 folder: "tiedy/products",
                 resourceType: "image",
                 multiple: false,
-                // --- KOMPRESI SEBELUM UPLOAD ---
-                clientAllowedFormats: ["jpg", "png", "webp", "jpeg"],
-                maxImageWidth: 2000,   // Resize otomatis jika lebar > 2000px
-                maxImageHeight: 2000,  // Resize otomatis jika tinggi > 2000px
-                imageCompression: 0.8  // Kompresi kualitas ke 80% sebelum dikirim
+                // --- KOMPRESI AGRESIF (Target ~120KB) ---
+                clientAllowedFormats: ["jpg", "jpeg"], // Hindari PNG agar tidak bengkak
+                maxImageWidth: 1000,                   // Resolusi cukup untuk web
+                maxImageHeight: 1000,
+                imageCompression: 0.5                  // Kompresi 50% (Sangat ringan tapi tetap tajam)
             }, (error, result) => {
                 if (!error && result.event === "success") {
                     const newUrl = result.info.secure_url;
                     updateFirestore(currentModalSku, { [`img_${suffix}`]: newUrl });
-                    alert("Foto berhasil dikompres dan disimpan di Cloud!");
+                    alert("FOTO BERHASIL DIKOMPRES & DISIMPAN!");
                 }
             });
         };
