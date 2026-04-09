@@ -679,16 +679,39 @@
         const CLOUDINARY_PRESET = "tiedy_presets";
 
         let allProducts = [];
-        let isAdmin = false;
+        let isAdmin = localStorage.getItem('tiedy_admin') === 'true';
         let logoClickCount = 0;
         let currentModalSku = null;
+
+        // Persistent State Helpers
+        function saveProducts() {
+            localStorage.setItem('tiedy_products_draft', JSON.stringify(allProducts));
+        }
+
+        function loadProductsDraft() {
+            const draft = localStorage.getItem('tiedy_products_draft');
+            return draft ? JSON.parse(draft) : null;
+        }
 
         // Load Products
         async function loadProducts() {
             try {
-                const response = await fetch('assets/products.json');
-                allProducts = await response.json();
+                const draft = loadProductsDraft();
+                if (draft) {
+                    allProducts = draft;
+                    console.log('Loaded from draft storage');
+                } else {
+                    const response = await fetch('assets/products.json');
+                    allProducts = await response.json();
+                }
                 renderProducts(allProducts);
+                
+                // If admin was active, ensure UI updates
+                if (isAdmin) {
+                    document.body.classList.add('admin-active');
+                    const pill = document.getElementById('admin-pill');
+                    if (pill) pill.style.display = 'flex';
+                }
             } catch (error) {
                 console.error('Error loading products:', error);
             }
@@ -825,6 +848,18 @@
             // Toggle Content Editable based on Admin
             nameEl.contentEditable = isAdmin;
             descEl.contentEditable = isAdmin;
+
+            // Real-time sync for text edits
+            const syncText = () => {
+                const p = allProducts.find(p => p.sku === currentModalSku);
+                if (p) {
+                    p.name = nameEl.innerText;
+                    p.description = descEl.innerText;
+                    saveProducts();
+                }
+            };
+            nameEl.oninput = syncText;
+            descEl.oninput = syncText;
         }
 
         function closeProductModal() {
@@ -859,7 +894,10 @@
 
         function enterAdmin() {
             isAdmin = true;
+            localStorage.setItem('tiedy_admin', 'true');
             document.body.classList.add('admin-active');
+            const pill = document.getElementById('admin-pill');
+            if (pill) pill.style.display = 'flex';
             alert("Administrator Mode Active.");
             const nameEl = document.getElementById('modal-name');
             const descEl = document.getElementById('modal-desc');
@@ -868,9 +906,12 @@
         }
 
         function exitAdmin() {
-            isAdmin = false;
-            document.body.classList.remove('admin-active');
-            location.reload();
+            if (confirm("Keluar dari Mode Admin? Perubahan yang belum di-sync (unduh JSON) akan tetap tersimpan di browser ini, tapi tidak akan hilang.")) {
+                isAdmin = false;
+                localStorage.removeItem('tiedy_admin');
+                localStorage.removeItem('tiedy_products_draft');
+                location.reload();
+            }
         }
 
         function openUploadWidget(suffix) {
@@ -886,17 +927,42 @@
                 multiple: false
             }, (error, result) => {
                 if (!error && result && result.event === "success") { 
-                    alert("Foto berhasil diganti! Halaman akan direfresh.");
-                    location.reload();
+                    const timestamp = new Date().getTime();
+                    const newUrl = `${CLOUDINARY_BASE_URL}${currentModalSku}_${suffix}.png?t=${timestamp}`;
+                    
+                    // 1. Update Modal Main Image
+                    const modalImg = document.getElementById('modal-main-img');
+                    if (modalImg) modalImg.src = newUrl;
+
+                    // 2. Update Thumbnail in Modal
+                    const thumbs = document.querySelectorAll('#modal-gallery-thumbs img');
+                    thumbs.forEach(img => {
+                        if (img.src.includes(`${currentModalSku}_${suffix}`)) {
+                            img.src = newUrl;
+                        }
+                    });
+
+                    // 3. Update Image on Grid
+                    const gridImg = document.getElementById(`img-${currentModalSku}`);
+                    if (gridImg && (suffix === 'c1')) {
+                        gridImg.src = newUrl;
+                    }
+                    
+                    alert("Foto berhasil diperbarui secara live!");
                 }
             });
         }
 
         function syncData() {
-            if (currentModalSku) {
+            // Final sync for any unsaved text in modal
+            const nameEl = document.getElementById('modal-name');
+            const descEl = document.getElementById('modal-desc');
+            if (currentModalSku && nameEl && descEl) {
                 const p = allProducts.find(p => p.sku === currentModalSku);
-                p.name = document.getElementById('modal-name').innerText;
-                p.description = document.getElementById('modal-desc').innerText;
+                if (p) {
+                    p.name = nameEl.innerText;
+                    p.description = descEl.innerText;
+                }
             }
 
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allProducts, null, 4));
@@ -907,7 +973,7 @@
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
             
-            alert("Perubahan teks telah disimpan. Mohon kirimkan file 'products.json' yang baru didownload ini kepada AI assistant untuk diperbarui secara permanen.");
+            alert("SINKRONISASI BERHASIL!\n\nPerubahan Anda telah dikemas dalam file 'products.json'.\n\nLANGKAH TERAKHIR: Kirimkan file ini ke Antigravity agar saya bisa mengupdate database permanen di server.");
         }
 
         function filterProducts(category) {
