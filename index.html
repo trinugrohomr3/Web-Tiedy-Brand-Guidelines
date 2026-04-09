@@ -672,84 +672,87 @@
 
     </main>
 
-    <script>
-        // CONFIGURATION: Menghubungkan ke Akun Cloudinary Anda
+    <script type="module">
+        // --- FIREBASE CONFIGURATION ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDKGh1zwOtwSGFhmZwpsfyNAF2f5ZCZnAw",
+            authDomain: "web-tiedy-brand-guidelines.firebaseapp.com",
+            projectId: "web-tiedy-brand-guidelines",
+            storageBucket: "web-tiedy-brand-guidelines.firebasestorage.app",
+            messagingSenderId: "966538216912",
+            appId: "1:966538216912:web:28c31c77e9f0299df0e5d5",
+            measurementId: "G-75EKECH8YC"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const productsCol = collection(db, "products");
+
+        // --- CLOUDINARY CONFIG ---
         const CLOUDINARY_CLOUD_NAME = "dlqvrnjgn"; 
         const CLOUDINARY_BASE_URL = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_auto,q_auto,w_800/tiedy/products/`;
         const CLOUDINARY_PRESET = "tiedy_presets";
 
+        // Global State
         let allProducts = [];
         let isAdmin = localStorage.getItem('tiedy_admin') === 'true';
         let logoClickCount = 0;
         let currentModalSku = null;
 
-        // Persistent State Helpers
-        function saveProducts() {
-            localStorage.setItem('tiedy_products_draft', JSON.stringify(allProducts));
-        }
+        // --- CORE FUNCTIONS ---
 
-        function loadProductsDraft() {
-            const draft = localStorage.getItem('tiedy_products_draft');
-            return draft ? JSON.parse(draft) : null;
-        }
-
-        // Load Products
-        async function loadProducts() {
-            try {
-                const draft = loadProductsDraft();
-                if (draft) {
-                    allProducts = draft;
-                    console.log('Loaded from draft storage');
-                } else {
-                    const response = await fetch('assets/products.json');
-                    allProducts = await response.json();
-                }
-                renderProducts(allProducts);
+        // 1. Load Data (Real-time from Firestore)
+        function loadProducts() {
+            onSnapshot(productsCol, (snapshot) => {
+                allProducts = snapshot.docs.map(doc => ({ sku: doc.id, ...doc.data() }));
                 
-                // If admin was active, ensure UI updates
-                if (isAdmin) {
-                    document.body.classList.add('admin-active');
-                    const pill = document.getElementById('admin-pill');
-                    if (pill) pill.style.display = 'flex';
+                // Jika database kosong, render dari JSON lokal sebagai cadangan (hanya visual)
+                if (allProducts.length === 0) {
+                    console.log("Firestore empty, fetching local products.json...");
+                    fetch('assets/products.json').then(r => r.json()).then(data => {
+                        allProducts = data;
+                        renderProducts(allProducts);
+                        document.getElementById('migrate-btn').classList.remove('hidden');
+                    });
+                } else {
+                    renderProducts(allProducts);
+                    document.getElementById('migrate-btn').classList.add('hidden');
+                    // Sync Modal if open
+                    if (currentModalSku) {
+                        const p = allProducts.find(x => x.sku === currentModalSku);
+                        if (p) refreshModalUI(p);
+                    }
                 }
-            } catch (error) {
-                console.error('Error loading products:', error);
-            }
+
+                if (isAdmin) enterAdminUI();
+            });
         }
 
         function renderProducts(products) {
             const grid = document.getElementById('product-grid');
             const noResults = document.getElementById('no-results');
-            
             if (products.length === 0) {
                 grid.innerHTML = '';
                 noResults.classList.remove('hidden');
                 return;
             }
-
             noResults.classList.add('hidden');
             grid.innerHTML = products.map(product => {
-                // Determine initial image: Dynamic URL from JSON OR SKU-based fallback
                 const mainImg = product.img_c1 || `${CLOUDINARY_BASE_URL}${product.sku}_c1.png`;
                 const fallbackImg = "assets/sapu.jpg";
-
                 return `
                 <div class="product-card p-6 flex flex-col group cursor-pointer" id="card-${product.sku}" onclick="openProductModal('${product.sku}')">
                     <div class="aspect-square bg-tiedy-blue/5 mb-6 flex items-center justify-center relative overflow-hidden rounded-lg">
-                        <img id="img-${product.sku}" 
-                             src="${mainImg}" 
-                             onerror="this.src='${fallbackImg}'; this.onerror=null;"
-                             alt="${product.name}" 
-                             class="w-4/5 h-auto object-contain transition-all duration-500">
-                        
-                        <!-- View Switcher -->
+                        <img id="img-${product.sku}" src="${mainImg}" onerror="this.src='${fallbackImg}'; this.onerror=null;" alt="${product.name}" class="w-4/5 h-auto object-contain transition-all duration-500">
                         <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation()">
                             <button onclick="changeView('${product.sku}', 'c1')" class="w-8 h-1 rounded-full bg-tiedy-navy/40 hover:bg-tiedy-navy transition-all active-view" title="Warna 1"></button>
                             <button onclick="changeView('${product.sku}', 'c2')" class="w-8 h-1 rounded-full bg-tiedy-navy/10 hover:bg-tiedy-navy transition-all" title="Warna 2"></button>
                             <button onclick="changeView('${product.sku}', 'pkg')" class="w-8 h-1 rounded-full bg-tiedy-navy/10 hover:bg-tiedy-navy transition-all" title="Packaging"></button>
                         </div>
-
-                        <div class="absolute top-3 right-3 text-[8px] font-bold tracking-widest text-tiedy-navy/20 bg-white/80 px-2 py-1 rounded">INTERNAL SPEC</div>
                     </div>
                     <div class="flex-1">
                         <div class="flex items-center justify-between mb-2">
@@ -759,279 +762,162 @@
                         <h3 class="text-sm font-bold text-tiedy-navy group-hover:text-tiedy-navy/80 transition-colors uppercase leading-tight">${product.name}</h3>
                         <p class="text-[10px] text-tiedy-navy/50 mt-2 leading-relaxed line-clamp-2 italic">${product.description}</p>
                     </div>
-                </div>
-            `;}).join('');
+                </div>`;
+            }).join('');
+        }
 
-            // Scroll animations
-            if (window.observer) {
-                document.querySelectorAll('.product-card').forEach(card => {
-                    window.observer.observe(card);
-                });
+        // 2. Database Write Logic
+        async function updateFirestore(sku, data) {
+            if (!isAdmin) return;
+            try {
+                const productRef = doc(db, "products", sku);
+                await updateDoc(productRef, data);
+            } catch (err) {
+                // If doc doesn't exist, use setDoc
+                if (err.code === 'not-found' || err.code === 'permission-denied') {
+                    console.warn("Update failed, attempting setDoc...", err);
+                    const productRef = doc(db, "products", sku);
+                    const p = allProducts.find(x => x.sku === sku);
+                    await setDoc(productRef, { ...p, ...data });
+                }
             }
         }
 
-        function changeView(sku, viewSuffix) {
-            const product = allProducts.find(p => p.sku === sku);
-            const imgElement = document.getElementById(`img-${sku}`);
-            
-            // Resolve URL: Custom img field or SKU-based fallback
-            const newUrl = (product && product[`img_${viewSuffix}`]) 
-                           ? product[`img_${viewSuffix}`] 
-                           : `${CLOUDINARY_BASE_URL}${sku}_${viewSuffix}.png`;
-            
-            // Temporary fade effect
-            imgElement.style.opacity = "0.3";
-            
-            const tempImg = new Image();
-            tempImg.src = newUrl;
-            tempImg.onload = () => {
-                imgElement.src = newUrl;
-                imgElement.style.opacity = "1";
-            };
-            tempImg.onerror = () => {
-                console.log(`View ${viewSuffix} not found for ${sku}`);
-                imgElement.style.opacity = "1";
-            };
-
-            // Update dots
-            const card = document.getElementById(`card-${sku}`);
-            const buttons = card.querySelectorAll('button');
-            buttons.forEach(btn => {
-                btn.classList.remove('bg-tiedy-navy/40', 'active-view');
-                btn.classList.add('bg-tiedy-navy/10');
-            });
-            event.currentTarget.classList.remove('bg-tiedy-navy/10');
-            event.currentTarget.classList.add('bg-tiedy-navy/40', 'active-view');
-        }
-
-        // --- MODAL LOGIC ---
-        function openProductModal(sku) {
+        // 3. UI Helpers (Exposed to global window)
+        window.openProductModal = (sku) => {
             const product = allProducts.find(p => p.sku === sku);
             if (!product) return;
-
             currentModalSku = sku;
-            const modal = document.getElementById('product-modal');
-            const mainImg = document.getElementById('modal-main-img');
+            refreshModalUI(product);
+            document.getElementById('product-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            
+            // Admin editing
             const nameEl = document.getElementById('modal-name');
             const descEl = document.getElementById('modal-desc');
-            const skuEl = document.getElementById('modal-sku');
-            const catEl = document.getElementById('modal-category');
+            nameEl.contentEditable = isAdmin;
+            descEl.contentEditable = isAdmin;
+            nameEl.onblur = () => updateFirestore(sku, { name: nameEl.innerText });
+            descEl.onblur = () => updateFirestore(sku, { description: descEl.innerText });
+        };
+
+        function refreshModalUI(product) {
+            const sku = product.sku;
+            document.getElementById('modal-sku').innerText = `SKU ${sku}`;
+            document.getElementById('modal-name').innerText = product.name;
+            document.getElementById('modal-category').innerText = product.category;
+            document.getElementById('modal-desc').innerText = product.description;
+            
+            const mainImg = document.getElementById('modal-main-img');
             const thumbContainer = document.getElementById('modal-gallery-thumbs');
+            mainImg.src = product.img_c1 || `${CLOUDINARY_BASE_URL}${sku}_c1.png`;
 
-            // Fill Data
-            nameEl.innerText = product.name;
-            descEl.innerText = product.description;
-            skuEl.innerText = product.sku;
-            catEl.innerText = product.category;
-            mainImg.src = `${CLOUDINARY_BASE_URL}${sku}_c1.png`;
-
-            // Thumbnails
             thumbContainer.innerHTML = '';
             ['c1', 'c2', 'pkg'].forEach(suffix => {
                 const thumb = document.createElement('div');
                 thumb.className = "w-16 h-16 rounded-lg border border-tiedy-navy/5 bg-white p-2 cursor-pointer hover:border-tiedy-navy/20 transition-all relative overflow-hidden group/thumb";
-                
-                const thumbUrl = product[`img_${suffix}`] || `${CLOUDINARY_BASE_URL}${sku}_${suffix}.png`;
-                
+                const url = product[`img_${suffix}`] || `${CLOUDINARY_BASE_URL}${sku}_${suffix}.png`;
                 thumb.innerHTML = `
-                    <img src="${thumbUrl}" class="w-full h-full object-contain" onerror="this.parentElement.style.display='none'">
+                    <img src="${url}" class="w-full h-full object-contain" onerror="this.parentElement.style.display='none'">
                     <button onclick="openUploadWidget('${suffix}')" class="admin-only absolute inset-0 bg-tiedy-navy/80 text-white flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity">
                         <span class="material-symbols-outlined text-xs">upload</span>
-                    </button>
-                `;
+                    </button>`;
                 thumb.onclick = (e) => {
-                    if (e.target.closest('.admin-only')) return;
-                    mainImg.style.opacity = "0.3";
-                    mainImg.src = thumbUrl;
-                    setTimeout(() => mainImg.style.opacity = "1", 300);
+                    if (!e.target.closest('.admin-only')) mainImg.src = url;
                 };
                 thumbContainer.appendChild(thumb);
             });
-
-            // Show Modal
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            
-            // Toggle Content Editable based on Admin
-            nameEl.contentEditable = isAdmin;
-            descEl.contentEditable = isAdmin;
-
-            // Real-time sync for text edits
-            const syncText = () => {
-                const p = allProducts.find(p => p.sku === currentModalSku);
-                if (p) {
-                    p.name = nameEl.innerText;
-                    p.description = descEl.innerText;
-                    saveProducts();
-                }
-            };
-            nameEl.oninput = syncText;
-            descEl.oninput = syncText;
         }
 
-        function closeProductModal() {
-            document.getElementById('product-modal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-            currentModalSku = null;
-        }
-
-        function downloadImage() {
-            const img = document.getElementById('modal-main-img');
-            const link = document.createElement('a');
-            link.href = img.src;
-            link.download = `Tiedy-${currentModalSku}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // --- ADMIN LOGIC ---
-        function handleLogoClick() {
+        // Admin Auth
+        window.handleLogoClick = () => {
             logoClickCount++;
             if (logoClickCount === 5) {
-                const pass = prompt("Enter Administration Password:");
-                if (pass === "123") {
-                    enterAdmin();
-                }
+                if (prompt("Password:") === "123") enterAdmin();
                 logoClickCount = 0;
             }
-            clearTimeout(window.logoReset);
-            window.logoReset = setTimeout(() => logoClickCount = 0, 2000);
-        }
+            setTimeout(() => logoClickCount = 0, 2000);
+        };
 
         function enterAdmin() {
             isAdmin = true;
             localStorage.setItem('tiedy_admin', 'true');
-            document.body.classList.add('admin-active');
-            const pill = document.getElementById('admin-pill');
-            if (pill) pill.style.display = 'flex';
-            alert("Administrator Mode Active.");
-            const nameEl = document.getElementById('modal-name');
-            const descEl = document.getElementById('modal-desc');
-            if (nameEl) nameEl.contentEditable = true;
-            if (descEl) descEl.contentEditable = true;
+            enterAdminUI();
+            alert("Admin Mode: Active (Firestore Connection)");
         }
 
-        function exitAdmin() {
-            if (confirm("Keluar dari Mode Admin? Perubahan yang belum di-sync (unduh JSON) akan tetap tersimpan di browser ini, tapi tidak akan hilang.")) {
-                isAdmin = false;
+        function enterAdminUI() {
+            document.body.classList.add('admin-active');
+            document.getElementById('admin-pill').style.display = 'flex';
+        }
+
+        window.exitAdmin = () => {
+            if (confirm("Keluar?")) {
                 localStorage.removeItem('tiedy_admin');
-                localStorage.removeItem('tiedy_products_draft');
                 location.reload();
             }
-        }
+        };
 
-        function openUploadWidget(suffix) {
+        // Migration logic
+        window.migrateData = async () => {
+            if (!confirm("Pindahkan data dari JSON lokal ke Firebase sekarang?")) return;
+            for (const p of allProducts) {
+                await setDoc(doc(db, "products", p.sku), p);
+                console.log("Migrating SKU:", p.sku);
+            }
+            alert("Migrasi Selesai!");
+            document.getElementById('migrate-btn').classList.add('hidden');
+        };
+
+        // Upload logic
+        window.openUploadWidget = (suffix) => {
             if (!isAdmin) return;
-            
-            console.log(`Starting dynamic upload for SKU: ${currentModalSku}`);
-            
             cloudinary.openUploadWidget({
                 cloudName: CLOUDINARY_CLOUD_NAME,
                 uploadPreset: CLOUDINARY_PRESET,
                 folder: "tiedy/products",
-                // HAPUS publicId agar tidak bentrok dengan batasan Unsigned Overwrite
                 resourceType: "image",
-                multiple: false,
-                clientAllowedFormats: ["png", "jpg", "jpeg", "webp"],
-                maxFileSize: 5000000 
+                multiple: false
             }, (error, result) => {
-                if (error) {
-                    console.error("Cloudinary Error:", error);
-                    alert("Gagal membuka widget.");
-                    return;
-                }
-
-                if (result && result.event === "success") { 
+                if (!error && result.event === "success") {
                     const newUrl = result.info.secure_url;
-                    
-                    // Update data di memori
-                    const product = allProducts.find(p => p.sku === currentModalSku);
-                    if (product) {
-                        product[`img_${suffix}`] = newUrl;
-                        saveProducts(); // Simpan ke localStorage
-                    }
-
-                    // Update UI Instan
-                    const modalImg = document.getElementById('modal-main-img');
-                    if (modalImg) modalImg.src = newUrl;
-
-                    const gridImg = document.getElementById(`img-${currentModalSku}`);
-                    if (gridImg && (suffix === 'c1')) gridImg.src = newUrl;
-
-                    // Update thumbnail
-                    const thumbs = document.querySelectorAll('#modal-gallery-thumbs img');
-                    thumbs.forEach(img => {
-                        // thumbnail logic update is tricky, simpler to re-render or update by index
-                    });
-                    
-                    alert("FOTO BARU BERHASIL DIUPLOAD!\nNama file unik telah dibuat otomatis untuk menghindari error.");
+                    updateFirestore(currentModalSku, { [`img_${suffix}`]: newUrl });
+                    alert("Foto berhasil disimpan di Cloud!");
                 }
             });
-        }
+        };
 
-        function syncData() {
-            // Final sync for any unsaved text in modal
-            const nameEl = document.getElementById('modal-name');
-            const descEl = document.getElementById('modal-desc');
-            if (currentModalSku && nameEl && descEl) {
-                const p = allProducts.find(p => p.sku === currentModalSku);
-                if (p) {
-                    p.name = nameEl.innerText;
-                    p.description = descEl.innerText;
-                }
-            }
-
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allProducts, null, 4));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "products.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-            
-            alert("SINKRONISASI BERHASIL!\n\nPerubahan Anda telah dikemas dalam file 'products.json'.\n\nLANGKAH TERAKHIR: Kirimkan file ini ke Antigravity agar saya bisa mengupdate database permanen di server.");
-        }
-
-        function filterProducts(category) {
-            // Update UI tabs
-            document.querySelectorAll('.filter-tab').forEach(tab => {
-                tab.classList.remove('active', 'bg-tiedy-navy', 'text-white');
-                tab.classList.add('hover:bg-white/50');
-                if (tab.innerText.toLowerCase() === category.toLowerCase()) {
-                    tab.classList.add('active', 'bg-tiedy-navy', 'text-white');
-                }
+        // Standard helpers
+        window.closeProductModal = () => {
+            document.getElementById('product-modal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentModalSku = null;
+        };
+        window.changeView = (sku, suffix) => {
+            const p = allProducts.find(x => x.sku === sku);
+            const img = document.getElementById(`img-${sku}`);
+            img.src = p[`img_${suffix}`] || `${CLOUDINARY_BASE_URL}${sku}_${suffix}.png`;
+        };
+        window.filterProducts = (cat) => {
+            renderProducts(cat === 'All' ? allProducts : allProducts.filter(p => p.category === cat));
+            document.querySelectorAll('.filter-tab').forEach(t => {
+                t.classList.toggle('active', t.innerText === cat);
+                t.classList.toggle('bg-tiedy-navy', t.innerText === cat);
+                t.classList.toggle('text-white', t.innerText === cat);
             });
+        };
+        window.searchProducts = () => {
+            const q = document.getElementById('product-search').value.toLowerCase();
+            renderProducts(allProducts.filter(p => p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)));
+        };
+        window.downloadImage = () => {
+            const link = document.createElement('a');
+            link.href = document.getElementById('modal-main-img').src;
+            link.download = `Tiedy-${currentModalSku}.png`;
+            link.click();
+        };
 
-            if (category === 'All') {
-                renderProducts(allProducts);
-            } else {
-                const filtered = allProducts.filter(p => p.category === category);
-                renderProducts(filtered);
-            }
-            
-            // Clear search when filtering
-            document.getElementById('product-search').value = '';
-        }
-
-        function searchProducts() {
-            const query = document.getElementById('product-search').value.toLowerCase();
-            const filtered = allProducts.filter(p => 
-                p.sku.toLowerCase().includes(query) || 
-                p.name.toLowerCase().includes(query) ||
-                p.description.toLowerCase().includes(query)
-            );
-            renderProducts(filtered);
-
-            // Reset tabs when searching
-            document.querySelectorAll('.filter-tab').forEach(tab => {
-                tab.classList.remove('active', 'bg-tiedy-navy', 'text-white');
-                if (tab.innerText === 'All') tab.classList.add('active', 'bg-tiedy-navy', 'text-white');
-            });
-        }
-
-        // Initialize on load
-        window.addEventListener('DOMContentLoaded', loadProducts);
+        loadProducts();
     </script>
 
     <!-- Product Detail Modal -->
@@ -1098,7 +984,7 @@
             <span class="text-[10px] font-bold uppercase tracking-widest">Administrator Mode</span>
         </div>
         <div class="w-px h-4 bg-white/20"></div>
-        <button onclick="syncData()" class="text-[10px] font-bold uppercase tracking-widest hover:text-tiedy-blue transition-colors">Sync Data</button>
+        <button id="migrate-btn" onclick="migrateData()" class="hidden text-[10px] font-bold uppercase tracking-widest text-tiedy-blue hover:text-white transition-colors">🔥 Migrate to Cloud</button>
         <button onclick="exitAdmin()" class="text-white/40 hover:text-white transition-colors">
             <span class="material-symbols-outlined text-sm">logout</span>
         </button>
