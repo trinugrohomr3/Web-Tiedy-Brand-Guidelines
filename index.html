@@ -127,15 +127,11 @@
         .admin-active .editable:hover {
             background: rgba(10, 31, 64, 0.05);
         }
-        .product-card img {
-            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
-        }
-
         .product-card:hover img {
             transform: scale(1.05);
         }
 
-        /* Modal Zoom Styles */
+        /* Modal & UI Enhancements */
         #modal-image-container {
             overflow: hidden;
             cursor: zoom-in;
@@ -149,6 +145,12 @@
         #modal-image-container:hover #modal-main-img {
             transform: scale(1.8);
             cursor: zoom-out;
+        }
+
+        .editable-admin:hover {
+            outline: 2px dashed rgba(0, 26, 51, 0.2);
+            background: rgba(0, 26, 51, 0.05);
+            border-radius: 4px;
         }
 
         .admin-pill {
@@ -814,11 +816,25 @@
             document.getElementById('product-modal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             
+            // Editability
             const nameEl = document.getElementById('modal-name');
             const descEl = document.getElementById('modal-desc');
-            nameEl.contentEditable = isAdmin; descEl.contentEditable = isAdmin;
+            const skuEl = document.getElementById('modal-sku');
+            const catEl = document.getElementById('modal-category');
+
+            [nameEl, descEl, skuEl, catEl].forEach(el => {
+                el.contentEditable = isAdmin;
+                if (isAdmin) el.classList.add('editable-admin');
+                else el.classList.remove('editable-admin');
+            });
+
             nameEl.onblur = () => updateFirestore(sku, { name: nameEl.innerText });
             descEl.onblur = () => updateFirestore(sku, { description: descEl.innerText });
+            catEl.onblur = () => updateFirestore(sku, { category: catEl.innerText });
+            skuEl.onblur = () => {
+                const newSku = skuEl.innerText.replace('SKU ', '').trim();
+                changeSku(sku, newSku);
+            };
         };
 
         function refreshModalUI(product) {
@@ -834,11 +850,11 @@
             const thumbContainer = document.getElementById('modal-gallery-thumbs');
             thumbContainer.innerHTML = images.map((url, idx) => `
                 <div class="thumbnail-item w-16 h-16 rounded-lg border bg-white p-2 cursor-pointer relative overflow-hidden group/thumb ${idx === currentViewIndex ? 'border-tiedy-navy' : 'border-tiedy-navy/5'}" data-index="${idx}">
-                    <img src="${url}" class="w-full h-full object-contain" onclick="setActiveImage(${idx})">
-                    <button onclick="event.stopPropagation(); removeImage(${idx})" class="admin-only absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                    <img src="${url}" class="w-full h-full object-contain relative z-10" onclick="setActiveImage(${idx})">
+                    <button onclick="event.stopPropagation(); removeImage(${idx})" class="admin-only absolute top-0 right-0 z-30 bg-red-500 text-white p-0.5 rounded-bl-lg opacity-0 group-hover/thumb:opacity-100 transition-opacity">
                         <span class="material-symbols-outlined text-[10px]">close</span>
                     </button>
-                    ${isAdmin ? `<div class="drag-handle absolute inset-0 cursor-move opacity-0"></div>` : ''}
+                    ${isAdmin ? `<div class="drag-handle absolute inset-0 cursor-move opacity-0 z-20"></div>` : ''}
                 </div>
             `).join('');
 
@@ -856,6 +872,31 @@
             dotsContainer.innerHTML = images.map((_, idx) => `
                 <div class="w-1.5 h-1.5 rounded-full ${idx === currentViewIndex ? 'bg-tiedy-navy/40' : 'bg-tiedy-navy/10'}"></div>
             `).join('');
+        }
+
+        async function changeSku(oldSku, newSku) {
+            if (!isAdmin || oldSku === newSku || !newSku) return;
+            if (allProducts.find(p => p.sku === newSku)) {
+                alert("SKU baru sudah terpakai!");
+                const p = allProducts.find(x => x.sku === oldSku);
+                refreshModalUI(p);
+                return;
+            }
+            if (!confirm(`Ubah SKU dari ${oldSku} ke ${newSku}?`)) {
+                const p = allProducts.find(x => x.sku === oldSku);
+                refreshModalUI(p);
+                return;
+            }
+
+            const p = allProducts.find(x => x.sku === oldSku);
+            const productData = { ...p };
+            delete productData.sku; // SKU is ID
+
+            await setDoc(doc(db, "products", newSku), productData);
+            await deleteDoc(doc(db, "products", oldSku));
+            
+            currentModalSku = newSku; // Update state
+            alert("SKU Berhasil diubah!");
         }
 
         function initSortable() {
@@ -983,22 +1024,20 @@
             alert("Mode Admin Aktif! (Format Gambar Baru & Drag-and-Drop Diaktifkan)");
         };
 
-        window.addProduct = async () => {
-            if (!isAdmin) return;
-            const sku = prompt("Masukkan SKU Produk (Contoh: TID-001):");
-            if (!sku) return;
-            
-            // Cek apakah SKU sudah ada
+        window.addProduct = () => {
+             if (!isAdmin) return;
+             document.getElementById('add-product-modal').classList.remove('hidden');
+        };
+
+        window.submitNewProduct = async (e) => {
+            e.preventDefault();
+            const sku = document.getElementById('new-sku').value.trim();
+            const name = document.getElementById('new-name').value.trim();
+            const category = document.getElementById('new-category').value.trim();
+
             if (allProducts.find(p => p.sku === sku)) {
-                alert("SKU sudah ada! Gunakan SKU lain.");
-                return;
+                alert("SKU sudah ada!"); return;
             }
-
-            const name = prompt("Nama Produk:");
-            if (!name) return;
-
-            const category = prompt("Kategori (Contoh: Cleaning):");
-            if (!category) return;
 
             const newProduct = {
                 name: name,
@@ -1008,7 +1047,13 @@
             };
 
             await setDoc(doc(db, "products", sku), newProduct);
-            alert("Produk berhasil ditambahkan! Silakan klik produk tersebut untuk menambah foto.");
+            closeAddModal();
+            alert("Produk berhasil ditambahkan!");
+        };
+
+        window.closeAddModal = () => {
+            document.getElementById('add-product-modal').classList.add('hidden');
+            document.getElementById('add-product-form').reset();
         };
 
         function enterAdminUI() {
@@ -1153,6 +1198,34 @@
             </div>
         </div>
     </footer>
+
+    <!-- New Product Modal -->
+    <div id="add-product-modal" class="fixed inset-0 z-[110] hidden overflow-y-auto" role="dialog">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div class="fixed inset-0 bg-tiedy-navy/60 backdrop-blur-sm transition-opacity" onclick="closeAddModal()"></div>
+            <div class="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-8 shadow-2xl transition-all animate__animated animate__zoomIn animate__faster">
+                <h3 class="font-headline font-bold text-2xl text-tiedy-navy mb-6">➕ Tambah Produk Baru</h3>
+                <form id="add-product-form" onsubmit="submitNewProduct(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-tiedy-navy/40 uppercase mb-2">SKU Produk</label>
+                        <input type="text" id="new-sku" required placeholder="TID-001" class="w-full rounded-lg border-tiedy-navy/10 focus:ring-tiedy-navy focus:border-tiedy-navy">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-tiedy-navy/40 uppercase mb-2">Nama Produk</label>
+                        <input type="text" id="new-name" required placeholder="Nama Produk..." class="w-full rounded-lg border-tiedy-navy/10 focus:ring-tiedy-navy focus:border-tiedy-navy">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-tiedy-navy/40 uppercase mb-2">Kategori</label>
+                        <input type="text" id="new-category" required placeholder="Cleaning / Tools" class="w-full rounded-lg border-tiedy-navy/10 focus:ring-tiedy-navy focus:border-tiedy-navy">
+                    </div>
+                    <div class="pt-4 flex gap-3">
+                        <button type="button" onclick="closeAddModal()" class="flex-1 py-3 bg-tiedy-navy/5 text-tiedy-navy font-bold rounded-xl hover:bg-tiedy-navy/10 transition-all text-sm">Batal</button>
+                        <button type="submit" class="flex-1 py-3 bg-tiedy-navy text-white font-bold rounded-xl hover:shadow-lg transition-all text-sm">Simpan Produk</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Intersection Observer for fade-in effects
