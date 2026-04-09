@@ -126,20 +126,44 @@
         .admin-active .editable:hover {
             background: rgba(10, 31, 64, 0.05);
         }
+        .product-card img {
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+        }
+
+        .product-card:hover img {
+            transform: scale(1.05);
+        }
+
+        /* Modal Zoom Styles */
+        #modal-image-container {
+            overflow: hidden;
+            cursor: zoom-in;
+            position: relative;
+        }
+
+        #modal-main-img {
+            transition: transform 0.1s ease-out, opacity 0.3s ease;
+        }
+
+        #modal-image-container:hover #modal-main-img {
+            transform: scale(1.8);
+            cursor: zoom-out;
+        }
+
         .admin-pill {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            z-index: 100;
-            background: #0A1F40;
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 999px;
             display: none;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #001A33;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 99px;
+            z-index: 1000;
             align-items: center;
-            gap: 1rem;
-            box-shadow: 0 10px 30px rgba(10,31,64,0.3);
-            animation: slideInUp 0.5s;
+            gap: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.1);
         }
         .admin-active .admin-pill { display: flex; }
     </style>
@@ -745,9 +769,13 @@
                 const mainImg = product.img_c1 || `${CLOUDINARY_BASE_URL}${product.sku}_c1.png`;
                 const fallbackImg = "assets/sapu.jpg";
                 return `
-                <div class="product-card p-6 flex flex-col group cursor-pointer" id="card-${product.sku}" onclick="openProductModal('${product.sku}')">
+                <div class="product-card p-6 flex flex-col group cursor-pointer" 
+                     id="card-${product.sku}" 
+                     onclick="openProductModal('${product.sku}')"
+                     onmouseenter="hoverView('${product.sku}', 'c2')"
+                     onmouseleave="hoverView('${product.sku}', 'c1')">
                     <div class="aspect-square bg-tiedy-blue/5 mb-6 flex items-center justify-center relative overflow-hidden rounded-lg">
-                        <img id="img-${product.sku}" src="${mainImg}" onerror="this.src='${fallbackImg}'; this.onerror=null;" alt="${product.name}" class="w-4/5 h-auto object-contain transition-all duration-500">
+                        <img id="img-${product.sku}" src="${mainImg}" onerror="this.src='${fallbackImg}'; this.onerror=null;" alt="${product.name}" class="w-4/5 h-auto object-contain">
                         <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation()">
                             <button onclick="changeView('${product.sku}', 'c1')" class="w-8 h-1 rounded-full bg-tiedy-navy/40 hover:bg-tiedy-navy transition-all active-view" title="Warna 1"></button>
                             <button onclick="changeView('${product.sku}', 'c2')" class="w-8 h-1 rounded-full bg-tiedy-navy/10 hover:bg-tiedy-navy transition-all" title="Warna 2"></button>
@@ -887,24 +915,24 @@
                 folder: "tiedy/products",
                 resourceType: "image",
                 multiple: false,
-                // --- KUNCI LIMIT < 120KB (PAKSA JPG & 800PX) ---
+                // --- LIMIT FINAL < 120KB (600PX & KOMPRESI EKSTREM) ---
                 clientAllowedFormats: ["jpg", "png", "webp", "jpeg"], 
-                maxImageWidth: 800,
-                maxImageHeight: 800,
-                imageCompression: 0.4,
+                maxImageWidth: 600,
+                maxImageHeight: 600,
+                imageCompression: 0.1,
                 transformation: [
                     { 
-                        width: 800, 
+                        width: 600, 
                         crop: "limit", 
                         quality: "auto:low", 
-                        fetch_format: "jpg" // Rahasia agar file jadi sangat ringan
+                        fetch_format: "auto"
                     }
                 ]
             }, (error, result) => {
                 if (!error && result.event === "success") {
                     const newUrl = result.info.secure_url;
                     updateFirestore(currentModalSku, { [`img_${suffix}`]: newUrl });
-                    alert("SUKSES! File berhasil dikompres ke ukuran minimal (<120KB).");
+                    alert("HASIL OPTIMAL! File sekarang sangat ringan (<120KB).");
                 }
             });
         };
@@ -976,7 +1004,35 @@
             link.click();
         };
 
-        loadProducts();
+        window.hoverView = (sku, suffix) => {
+            const p = allProducts.find(x => x.sku === sku);
+            if (!p) return;
+            const img = document.getElementById(`img-${sku}`);
+            const url = p[`img_${suffix}`] || `${CLOUDINARY_BASE_URL}${sku}_${suffix}.png`;
+            img.src = url;
+        };
+
+        // Interior Zoom Logic
+        const initZoom = () => {
+            const container = document.getElementById('modal-image-container');
+            const img = document.getElementById('modal-main-img');
+
+            container.addEventListener('mousemove', (e) => {
+                const rect = container.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                img.style.transformOrigin = `${x}% ${y}%`;
+            });
+
+            container.addEventListener('mouseleave', () => {
+                img.style.transformOrigin = 'center center';
+            });
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+             loadProducts();
+             initZoom();
+        });
     </script>
 
     <!-- Product Detail Modal -->
@@ -992,13 +1048,13 @@
                 <div class="flex flex-col md:flex-row">
                     <!-- Gallery Section -->
                     <div class="md:w-1/2 p-8 bg-tiedy-blue/10 flex flex-col items-center justify-center">
-                        <div class="relative group/modalimg w-full flex items-center justify-center min-h-[400px]">
+                        <div id="modal-image-container" class="relative group/modalimg w-full flex items-center justify-center min-h-[400px]">
                             <!-- Navigation Arrows -->
                             <button onclick="navigateModal(-1)" class="absolute left-0 z-10 p-2 text-tiedy-navy/20 hover:text-tiedy-navy transition-all">
                                 <span class="material-symbols-outlined text-4xl">chevron_left</span>
                             </button>
                             
-                            <img id="modal-main-img" src="" alt="" class="max-w-full max-h-[450px] object-contain transition-all duration-500">
+                            <img id="modal-main-img" src="" alt="" class="max-w-full max-h-[450px] object-contain">
                             
                             <button onclick="navigateModal(1)" class="absolute right-0 z-10 p-2 text-tiedy-navy/20 hover:text-tiedy-navy transition-all">
                                 <span class="material-symbols-outlined text-4xl">chevron_right</span>
