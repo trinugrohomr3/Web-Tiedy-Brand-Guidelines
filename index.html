@@ -957,18 +957,43 @@
              link.download = `Tiedy-${currentModalSku}.png`;
              link.click();
         };
+
         window.handleLogoClick = () => {
             logoClickCount++;
-            if (logoClickCount === 5) { if (prompt("Pass:") === "123") enterAdmin(); logoClickCount = 0; }
+            if (logoClickCount === 5) { 
+                if (prompt("Password:") === "123") {
+                    window.enterAdmin();
+                }
+                logoClickCount = 0; 
+            }
             setTimeout(() => logoClickCount = 0, 2000);
         };
+
         window.exitAdmin = () => {
-             if (confirm("Keluar?")) { localStorage.removeItem('tiedy_admin'); location.reload(); }
+             if (confirm("Keluar dari Mode Admin?")) { 
+                 localStorage.removeItem('tiedy_admin'); 
+                 location.reload(); 
+             }
         };
+
+        window.enterAdmin = () => {
+            isAdmin = true;
+            localStorage.setItem('tiedy_admin', 'true');
+            enterAdminUI();
+            alert("Mode Admin Aktif! (Format Gambar Baru & Drag-and-Drop Diaktifkan)");
+        };
+
+        function enterAdminUI() {
+            document.body.classList.add('admin-active');
+            const pill = document.getElementById('admin-pill');
+            if (pill) pill.style.display = 'flex';
+            renderProducts(allProducts); // Refresh untuk memunculkan fitur admin
+        }
 
         const initZoom = () => {
             const container = document.getElementById('modal-image-container');
             const img = document.getElementById('modal-main-img');
+            if (!container || !img) return;
             container.addEventListener('mousemove', (e) => {
                 const rect = container.getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -978,7 +1003,10 @@
             container.addEventListener('mouseleave', () => { img.style.transformOrigin = 'center center'; });
         };
 
-        document.addEventListener('DOMContentLoaded', () => { loadProducts(); initZoom(); });
+        document.addEventListener('DOMContentLoaded', () => { 
+            loadProducts(); 
+            initZoom(); 
+        });
     </script>
 
     <!-- Product Detail Modal -->
