@@ -1019,23 +1019,33 @@
         };
 
         window.migrateData = async () => {
-            if (!confirm("⚠️ PERINGATAN: Ini akan menimpa seluruh data produk di Cloud (Firebase) dengan data dari file lokal products.json. Lanjutkan?")) return;
+            if (!confirm("⚠️ PERINGATAN KERAS: Ini akan MENGHAPUS SEMUA produk lama di database dan menggantinya dengan 65 produk baru dari katalog. Lanjutkan?")) return;
             
             try {
+                // 1. Ambil semua produk lama di Firestore
+                const snapshot = await getDocs(productsCol);
+                const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, "products", d.id)));
+                
+                // 2. Hapus semuanya dulu
+                console.log("Cleaning old data...");
+                await Promise.all(deletePromises);
+                
+                // 3. Ambil data baru dari lokal
                 const response = await fetch('assets/products.json');
                 const localData = await response.json();
                 
+                // 4. Upload data baru
                 for (const p of localData) {
                     const sku = p.sku;
                     const dataToSave = { ...p };
-                    // Ensure images array exists even if empty
                     if (!dataToSave.images) {
                         dataToSave.images = [p.img_c1, p.img_c2, p.img_pkg].filter(Boolean);
                     }
                     await setDoc(doc(db, "products", sku), dataToSave);
                 }
-                alert("🚀 Migrasi Berhasil! 65 Produk lokal telah diunggah ke Firebase.");
-                location.reload(); // Refresh to see changes
+                
+                alert("🚀 BERHASIL! Database telah dibersihkan dan 65 produk terbaru dengan Item No yang benar sudah diunggah.");
+                location.reload();
             } catch (err) {
                 console.error(err);
                 alert("Gagal migrasi: " + err.message);
