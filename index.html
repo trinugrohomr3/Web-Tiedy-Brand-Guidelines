@@ -795,17 +795,17 @@
                         allProducts = data.map(p => ({ ...p, images: [p.img_c1, p.img_c2, p.img_pkg].filter(Boolean) }));
                         renderProducts(allProducts);
                         renderCategoryFilters(); 
-                        document.getElementById('migrate-btn').classList.remove('hidden');
                     });
                 } else {
                     renderProducts(allProducts);
                     renderCategoryFilters(); 
-                    document.getElementById('migrate-btn').classList.add('hidden');
                     if (currentModalSku) {
                         const p = allProducts.find(x => x.sku === currentModalSku);
                         if (p) refreshModalUI(p);
                     }
                 }
+                // Selalu tampilkan tombol migrasi jika di local ada data (fallback) atau jika admin ingin override
+                document.getElementById('migrate-btn').classList.remove('hidden');
                 if (isAdmin) enterAdminUI();
             });
         }
@@ -1019,12 +1019,27 @@
         };
 
         window.migrateData = async () => {
-            if (!confirm("Migrasi data ke Firestore?")) return;
-            for (const p of allProducts) {
-                const images = [p.img_c1, p.img_c2, p.img_pkg].filter(Boolean);
-                await setDoc(doc(db, "products", p.sku), { ...p, images });
+            if (!confirm("⚠️ PERINGATAN: Ini akan menimpa seluruh data produk di Cloud (Firebase) dengan data dari file lokal products.json. Lanjutkan?")) return;
+            
+            try {
+                const response = await fetch('assets/products.json');
+                const localData = await response.json();
+                
+                for (const p of localData) {
+                    const sku = p.sku;
+                    const dataToSave = { ...p };
+                    // Ensure images array exists even if empty
+                    if (!dataToSave.images) {
+                        dataToSave.images = [p.img_c1, p.img_c2, p.img_pkg].filter(Boolean);
+                    }
+                    await setDoc(doc(db, "products", sku), dataToSave);
+                }
+                alert("🚀 Migrasi Berhasil! 65 Produk lokal telah diunggah ke Firebase.");
+                location.reload(); // Refresh to see changes
+            } catch (err) {
+                console.error(err);
+                alert("Gagal migrasi: " + err.message);
             }
-            alert("Selesai!");
         };
 
         let currentFilter = 'All';
