@@ -891,6 +891,8 @@
             document.getElementById('modal-name').innerText = product.name;
             document.getElementById('modal-category').innerText = product.category;
             document.getElementById('modal-desc').innerText = product.description;
+            document.getElementById('modal-ctn-qty').innerText = product.ctn_qty || '—';
+            document.getElementById('modal-ctn-cbm').innerText = product.ctn_cbm ? product.ctn_cbm + ' m³' : '—';
             
             const mainImg = document.getElementById('modal-main-img');
             mainImg.src = images[currentViewIndex] || "assets/sapu.jpg";
@@ -908,10 +910,19 @@
 
             if (isAdmin) {
                 const addBtn = document.createElement('div');
-                addBtn.className = "w-16 h-16 rounded-lg border-2 border-dashed border-olivr-navy/20 flex items-center justify-center cursor-pointer hover:border-olivr-navy/40 transition-all";
-                addBtn.innerHTML = '<span class="material-symbols-outlined text-olivr-navy/40">add_a_photo</span>';
+                addBtn.className = "w-16 h-16 rounded-lg border-2 border-dashed border-olivr-navy/20 flex flex-col items-center justify-center cursor-pointer hover:border-olivr-navy/40 transition-all gap-0.5";
+                addBtn.title = "Upload gambar dari komputer";
+                addBtn.innerHTML = '<span class="material-symbols-outlined text-olivr-navy/40 text-base">add_a_photo</span><span class="text-[8px] text-olivr-navy/30 font-bold">Upload</span>';
                 addBtn.onclick = () => openUploadWidget();
                 thumbContainer.appendChild(addBtn);
+
+                const pasteBtn = document.createElement('div');
+                pasteBtn.className = "w-16 h-16 rounded-lg border-2 border-dashed border-sky-300/60 flex flex-col items-center justify-center cursor-pointer hover:border-sky-400 hover:bg-sky-50 transition-all gap-0.5";
+                pasteBtn.title = "Paste URL gambar dari website lain";
+                pasteBtn.innerHTML = '<span class="material-symbols-outlined text-sky-400/70 text-base">link</span><span class="text-[8px] text-sky-400/70 font-bold">Paste URL</span>';
+                pasteBtn.onclick = () => openPasteUrlDialog();
+                thumbContainer.appendChild(pasteBtn);
+
                 initSortable();
             }
 
@@ -996,6 +1007,21 @@
                     await updateFirestore(currentModalSku, { images: updatedImages });
                 }
             });
+        };
+
+        window.openPasteUrlDialog = async () => {
+            if (!isAdmin) return;
+            const url = prompt('🔗 Paste URL gambar dari website lain:\n(contoh: https://nb-liao.com/image.jpg)');
+            if (!url) return;
+            const trimmed = url.trim();
+            if (!trimmed.startsWith('http')) {
+                alert('URL tidak valid. Harus dimulai dengan http:// atau https://');
+                return;
+            }
+            const p = allProducts.find(x => x.sku === currentModalSku);
+            const updatedImages = [...(p.images || []), trimmed];
+            await updateFirestore(currentModalSku, { images: updatedImages });
+            alert('✅ Gambar berhasil ditambahkan!');
         };
 
         window.navigateModal = (direction) => {
@@ -1322,6 +1348,16 @@
                             <p id="modal-desc" class="text-sm text-olivr-navy/70 leading-relaxed editable" contenteditable="false">
                                 Detailed technical specifications and material information will appear here.
                             </p>
+                            <div class="mt-6 grid grid-cols-2 gap-3">
+                                <div class="bg-olivr-blue/10 rounded-xl p-4">
+                                    <span class="text-[9px] font-bold uppercase tracking-widest text-olivr-navy/40 block mb-1">Pcs / Carton</span>
+                                    <span id="modal-ctn-qty" class="text-xl font-bold text-olivr-navy">—</span>
+                                </div>
+                                <div class="bg-olivr-blue/10 rounded-xl p-4">
+                                    <span class="text-[9px] font-bold uppercase tracking-widest text-olivr-navy/40 block mb-1">CTN CBM (m³)</span>
+                                    <span id="modal-ctn-cbm" class="text-xl font-bold text-olivr-navy">—</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mt-12 flex gap-4 pt-8 border-t border-olivr-navy/5">

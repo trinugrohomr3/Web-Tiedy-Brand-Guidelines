@@ -5,6 +5,7 @@
     "description": "12\" Cleaning head. 70cm-180cm 3-section telescopic aluminum handle",
     "category": "Home Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.06",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -15,6 +16,7 @@
     "description": "8\" cleaning head. 360 degree rotatable. 53cm-80.5cm telescopic aluminium handle. paper card packing",
     "category": "Home Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.04",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -25,6 +27,7 @@
     "description": "10\" cleaning head. 360 degree rotatable. 78cm-130cm telescopic aluminium handle. paper card packing",
     "category": "Home Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.06",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -35,6 +38,7 @@
     "description": "12\" cleaning head. 360 degree rotatable. 110cm-180cm telescopic aluminium handle. paper card packing",
     "category": "Home Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.07",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -45,6 +49,7 @@
     "description": "21*23.5cm pp head. 95-175cm telescopic metal handle",
     "category": "Home Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.05",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -55,6 +60,7 @@
     "description": "Microfiber Duster total length: 57CM. Refill material Chenille+microfiber cloths size: 44*7CM. Plastic grip with LIAO logo. Paper card packing",
     "category": "Home Care",
     "ctn_qty": "48",
+    "ctn_cbm": "0.06",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -65,6 +71,7 @@
     "description": "Microfiber Duster total length: 57CM. Refill material Chenille+microfiber cloths size: 44*7CM. Plastic grip with LIAO logo. 70-120cm telescopic metal handle. Paper card packing",
     "category": "Home Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.05",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -75,6 +82,7 @@
     "description": "27cm dustpan. 80mm PET bristle. 33cm EVA scraper. 82cm stainless steel handle",
     "category": "Floor Care",
     "ctn_qty": "12",
+    "ctn_cbm": "0.07",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -85,6 +93,7 @@
     "description": "Two way drive. 123cm 2-section stainless steel handle. Plastic basket. Product size: 45x24.5x23cm. Volume 6L. 2pcs mop refill included",
     "category": "Floor Care",
     "ctn_qty": "6",
+    "ctn_cbm": "0.19",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -95,6 +104,7 @@
     "description": "Two way drive. 123cm 2-section stainless steel handle. Stainless steel basket. Product size: 45x24.5x23cm. Volume 6L. 2pcs mop refill included",
     "category": "Floor Care",
     "ctn_qty": "6",
+    "ctn_cbm": "0.20",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -105,6 +115,7 @@
     "description": "2-way drive. 123cm 2-section stainless steel handle. Stainless steel basket. Product size: 47.7*25.7*45.3cm. Pour spout for easy drainage. Volume 8L. Microfiber refill 2pcs included. Colorful box packing",
     "category": "Floor Care",
     "ctn_qty": "6",
+    "ctn_cbm": "0.23",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -115,6 +126,7 @@
     "description": "Microfiber mop head. 130cm metal handle",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.07",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -125,6 +137,7 @@
     "description": "Microfiber Head with scouring pad 150g. Metal Handle 130cm Ø21.5mm. American thread head",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.07",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -135,6 +148,7 @@
     "description": "Microfiber mop head. Total length: 82-130cm. Telescopic metal handle dia 22mm. Self-lock function",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.08",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -145,6 +159,7 @@
     "description": "Floor brush size: 22*7.5cm. Black color bristle 4cm. TPR size: 1cm. Metal handle total length: 120cm. Dia 21.5mm",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.05",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -155,6 +170,7 @@
     "description": "Floor brush size: 26*7.5cm. Black color bristle 4cm. TPR size: 1cm. Metal handle total length: 120cm. Dia 21.5mm",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.06",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -165,6 +181,7 @@
     "description": "35cm Floor Squeegee Head size: 35*6*6cm. TPR bristle length 3.5cm. 130cm metal handle. Paper card packing",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.07",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -175,6 +192,7 @@
     "description": "45cm floor brush. Scrub-brush bristle 5.7cm. 130cm metal handle dia 25mm. Paper card packing",
     "category": "Floor Care",
     "ctn_qty": "12",
+    "ctn_cbm": "0.08",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -185,6 +203,7 @@
     "description": "Stainless metal. 20g/pc. 2pc/opp bag",
     "category": "Home Care",
     "ctn_qty": "144",
+    "ctn_cbm": "0.06",
     "unit": "Bags",
     "img_c1": "",
     "img_c2": ""
@@ -195,6 +214,7 @@
     "description": "Stainless Steel. 4*15g/opp",
     "category": "Home Care",
     "ctn_qty": "144",
+    "ctn_cbm": "0.09",
     "unit": "Bags",
     "img_c1": "",
     "img_c2": ""
@@ -205,6 +225,7 @@
     "description": "Stainless Steel. 4*20g/opp",
     "category": "Home Care",
     "ctn_qty": "96",
+    "ctn_cbm": "0.07",
     "unit": "Bags",
     "img_c1": "",
     "img_c2": ""
@@ -215,6 +236,7 @@
     "description": "Sponge Scouring Pad. Size: 10x6.5x3cm. 1pc/bag",
     "category": "Home Care",
     "ctn_qty": "288",
+    "ctn_cbm": "0.07",
     "unit": "Bags",
     "img_c1": "",
     "img_c2": ""
@@ -225,6 +247,7 @@
     "description": "Length: 38cm. 25mm bristle. Sponge head. TPR handle",
     "category": "Home Care",
     "ctn_qty": "72",
+    "ctn_cbm": "0.07",
     "unit": "Pcs",
     "img_c1": "",
     "img_c2": ""
@@ -235,6 +258,7 @@
     "description": "Length: 41cm. 25mm bristle. Sponge head. TPR handle",
     "category": "Home Care",
     "ctn_qty": "96",
+    "ctn_cbm": "0.13",
     "unit": "Pcs",
     "img_c1": "",
     "img_c2": ""
@@ -245,6 +269,7 @@
     "description": "Total length 45cm. 40mm bristle. TPR handle",
     "category": "Home Care",
     "ctn_qty": "72",
+    "ctn_cbm": "0.11",
     "unit": "Pcs",
     "img_c1": "",
     "img_c2": ""
@@ -255,6 +280,7 @@
     "description": "Plastic handle size 28.5cm. Scouring pad + sponge size: 10*4.5cm, thickness 3cm. OPP bag packing",
     "category": "Home Care",
     "ctn_qty": "288",
+    "ctn_cbm": "",
     "unit": "Pcs",
     "img_c1": "",
     "img_c2": ""
@@ -265,6 +291,7 @@
     "description": "Total length 45cm. 40mm bristle. TPR handle",
     "category": "Home Care",
     "ctn_qty": "72",
+    "ctn_cbm": "0.10",
     "unit": "Pcs",
     "img_c1": "",
     "img_c2": ""
@@ -275,6 +302,7 @@
     "description": "16cm dustpan. 70mm bristle",
     "category": "Home Care",
     "ctn_qty": "144",
+    "ctn_cbm": "0.11",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -285,6 +313,7 @@
     "description": "Cleaning brush set 5pcs. Size: 32*22*7.5cm",
     "category": "Home Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.11",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -295,6 +324,7 @@
     "description": "Size: 27*4.1*3.6cm. Plastic holder 3 position. 2 hanger. Blister box packing. 4 set screws included",
     "category": "Accessories",
     "ctn_qty": "96",
+    "ctn_cbm": "0.10",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -305,6 +335,7 @@
     "description": "Each size: 6.7*4*3.9cm. Plastic holder 2 position. Wall hooks strong glue. Weight capacity: approx 3KG",
     "category": "Accessories",
     "ctn_qty": "96",
+    "ctn_cbm": "0.05",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -315,6 +346,7 @@
     "description": "Each size: 26.8*4.1*3.9cm. Plastic holder 3 position. Wall hooks strong glue. Weight capacity: approx 3KG",
     "category": "Accessories",
     "ctn_qty": "96",
+    "ctn_cbm": "0.10",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -325,6 +357,7 @@
     "description": "Size: 26*6.2*8cm. ABS material, 285g. Plastic holder 3 position. 4 hangers. Colorful box packing. 4 set screws included",
     "category": "Accessories",
     "ctn_qty": "48",
+    "ctn_cbm": "0.08",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -335,6 +368,7 @@
     "description": "Size: 40.5*6.2*8cm. ABS material, 442g. Plastic holder 5 position. 6 hangers. Colorful box packing. 6 screws included",
     "category": "Accessories",
     "ctn_qty": "24",
+    "ctn_cbm": "0.07",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -345,6 +379,7 @@
     "description": "PE black color. Size 63*80cm. 50L. 30pcs/roll. 1 roll/opp bag. Single side thickness 0.9S. 270g/roll. Paper opp bag packing",
     "category": "Accessories",
     "ctn_qty": "48",
+    "ctn_cbm": "0.03",
     "unit": "Rolls",
     "img_c1": "",
     "img_c2": ""
@@ -355,6 +390,7 @@
     "description": "80% Polyester + 20% polyamide. 7 colors mix (pink/yellow/blue/green/orange/purple/light blue). Size: 30*30cm. Washing label. 230gsm. 20.7g/pc. 8pcs per bag",
     "category": "Home Care",
     "ctn_qty": "48",
+    "ctn_cbm": "0.08",
     "unit": "Pack",
     "img_c1": "",
     "img_c2": ""
@@ -365,6 +401,7 @@
     "description": "Dustpan size: 315mm*210mm*80mm. 55mm bristle. PP material",
     "category": "Floor Care",
     "ctn_qty": "48",
+    "ctn_cbm": "0.15",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -375,6 +412,7 @@
     "description": "40cm*10cm flat mop set. Includes 2pcs mop refill (microfiber/chenille) size: 43*13cm. 70cm-120cm telescopic metal handle. Paper card packing",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.09",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -385,6 +423,7 @@
     "description": "Microfiber mop with pockets. Size: 40*11cm. Microfiber mop refill 45*16cm. 75cm-130cm telescopic metal handle dia 22/25mm",
     "category": "Floor Care",
     "ctn_qty": "12",
+    "ctn_cbm": "0.03",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -395,6 +434,7 @@
     "description": "Microfiber refill size: 44*16cm. Fits A130101. 73g. Pocket style. PP bag + paper card packing",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.02",
     "unit": "Pcs",
     "img_c1": "",
     "img_c2": ""
@@ -405,6 +445,7 @@
     "description": "40*10cm flat mop. Chenille mop refill 43*13cm. 70cm-120cm telescopic metal handle",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.07",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -415,6 +456,7 @@
     "description": "Refill for LA2209/LA2210. Size: 43*13cm. 95g. Paper card + OPP bag packing",
     "category": "Floor Care",
     "ctn_qty": "48",
+    "ctn_cbm": "0.05",
     "unit": "Pcs",
     "img_c1": "",
     "img_c2": ""
@@ -425,6 +467,7 @@
     "description": "52cm flat mop. Microfiber mop refill. 75cm-130cm telescopic metal handle",
     "category": "Floor Care",
     "ctn_qty": "12",
+    "ctn_cbm": "0.06",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -435,6 +478,7 @@
     "description": "Size: 55cm. Microfiber mop refill",
     "category": "Floor Care",
     "ctn_qty": "48",
+    "ctn_cbm": "",
     "unit": "Pcs",
     "img_c1": "",
     "img_c2": ""
@@ -445,6 +489,7 @@
     "description": "27cm PVA head, replaceable. Soft grey color. 75cm-105cm telescopic stainless steel handle dia 22-25mm",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.17",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -455,6 +500,7 @@
     "description": "PVA Magic Mop. 82-113cm telescopic metal handle. 33cm PVA head. Roller squeegee",
     "category": "Floor Care",
     "ctn_qty": "12",
+    "ctn_cbm": "0.12",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -465,6 +511,7 @@
     "description": "50% cotton + 50% polyester yarn. Gray & white color. 130cm metal handle. Weight: 190g. Length: 28cm. PP plastic",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.06",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -475,6 +522,7 @@
     "description": "25cm dustpan. 70mm bristle. 75cm metal handle",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.09",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -485,6 +533,7 @@
     "description": "26.5cm dustpan with comb teeth. 80mm bristle. 75cm metal handle",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.11",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
@@ -495,6 +544,7 @@
     "description": "58cm EVA floor squeegee. Italy screw. 130cm metal handle dia 25mm",
     "category": "Floor Care",
     "ctn_qty": "24",
+    "ctn_cbm": "0.11",
     "unit": "Sets",
     "img_c1": "",
     "img_c2": ""
